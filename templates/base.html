@@ -7,177 +7,131 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <style>
+    /* ── Değişkenler ── */
     :root {
-      --sb-w:    255px;
-      --sb-mini: 62px;
       --sb-bg:   #1b3a5c;
       --sb-hov:  #254e7d;
       --sb-act:  #2d5f99;
       --accent:  #e67e22;
-      --mob-h:   56px;
-      --tr:      0.25s ease;
+      --sb-w:    255px;
+      --sb-mini: 62px;
+      --tr: 0.22s ease;
     }
 
-    *, *::before, *::after { box-sizing: border-box; }
+    body { background: #f1f4f8; font-family: 'Segoe UI', system-ui, sans-serif; }
 
-    body {
-      margin: 0;
-      background: #f1f4f8;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-
-    /* ── Paylaşılan nav link stili ── */
-    .sb-nav .nav-link {
-      color: rgba(255,255,255,.65);
-      padding: .72rem 1.1rem;
-      display: flex; align-items: center; gap: .65rem;
-      border-left: 3px solid transparent;
-      min-height: 48px; white-space: nowrap; overflow: hidden;
-      transition: background .15s, color .15s;
-      text-decoration: none;
-    }
-    .sb-nav .nav-link:hover  { color: #fff; background: var(--sb-hov); }
-    .sb-nav .nav-link.active { color: #fff; background: var(--sb-act); border-left-color: var(--accent); }
-    .sb-nav .nav-link .bi    { font-size: 1.05rem; flex-shrink: 0; width: 20px; text-align: center; }
-    .sb-sec {
-      padding: .8rem 1.1rem .2rem;
-      color: rgba(255,255,255,.3);
-      font-size: .64rem; text-transform: uppercase; letter-spacing: .1em;
-    }
-
-    /* ══════════════════════════════
-       MASAÜSTÜ SIDEBAR
-    ══════════════════════════════ */
+    /* ── Sidebar ── */
     .sidebar {
-      position: fixed; top: 0; left: 0;
-      width: var(--sb-w); height: 100vh;
+      width: var(--sb-w);
       background: var(--sb-bg);
-      z-index: 200;
-      flex-direction: column;
-      overflow: hidden;
       transition: width var(--tr);
-      display: flex;           /* mobilde none yapılacak */
+      overflow: hidden;
     }
-    .sb-brand {
-      display: flex; align-items: center; gap: .7rem;
-      padding: 1.25rem 1.1rem;
-      border-bottom: 1px solid rgba(255,255,255,.1);
-      flex-shrink: 0; overflow: hidden;
-    }
-    .sb-logo { font-size: 1.2rem; color: #fff; flex-shrink: 0; }
-    .sb-name { color: #fff; font-size: .97rem; font-weight: 700; margin: 0; white-space: nowrap; }
-    .sb-sub  { color: rgba(255,255,255,.4); font-size: .68rem; white-space: nowrap; margin: 0; }
-    .sb-foot { padding: .75rem 1.1rem; overflow: hidden; white-space: nowrap; margin-top: auto; }
-
-    /* Mini (daraltılmış) mod */
     .sidebar.mini { width: var(--sb-mini); }
-    .sidebar.mini .sb-titles,
-    .sidebar.mini .sb-sec,
-    .sidebar.mini .nav-text,
-    .sidebar.mini .sb-foot  { display: none; }
-    .sidebar.mini .sb-brand { justify-content: center; padding: 1.1rem 0; }
-    .sidebar.mini .sb-logo  { font-size: 1.3rem; }
-    .sidebar.mini .sb-nav .nav-link {
-      justify-content: center; padding: .75rem 0; gap: 0; border-left: none;
-    }
-    .sidebar.mini .sb-nav .nav-link.active {
-      background: var(--sb-act); border-right: 3px solid var(--accent);
-    }
-    .sidebar.mini .sb-nav .nav-link .bi { width: auto; font-size: 1.2rem; }
 
-    /* Çekme kolu */
-    .sb-tab {
+    .sb-brand-text { overflow: hidden; white-space: nowrap; }
+    .sb-brand-text .name { color: #fff; font-size: .97rem; font-weight: 700; margin: 0; }
+    .sb-brand-text .sub  { color: rgba(255,255,255,.4); font-size: .68rem; }
+
+    .sb-section {
+      padding: .8rem 1rem .15rem;
+      color: rgba(255,255,255,.3);
+      font-size: .63rem; text-transform: uppercase; letter-spacing: .1em;
+      white-space: nowrap; overflow: hidden;
+    }
+
+    .sb-link {
+      display: flex; align-items: center; gap: .65rem;
+      color: rgba(255,255,255,.65);
+      padding: .72rem 1rem;
+      border-left: 3px solid transparent;
+      min-height: 46px; white-space: nowrap;
+      text-decoration: none;
+      transition: background .14s, color .14s;
+    }
+    .sb-link:hover  { color: #fff; background: var(--sb-hov); }
+    .sb-link.active { color: #fff; background: var(--sb-act); border-left-color: var(--accent); }
+    .sb-link .bi    { font-size: 1.05rem; width: 20px; text-align: center; flex-shrink: 0; }
+    .sb-link .lbl   { white-space: nowrap; overflow: hidden; }
+
+    /* Mini modda metin/bölüm başlıkları kaybolur */
+    .sidebar.mini .sb-brand-text,
+    .sidebar.mini .sb-section,
+    .sidebar.mini .lbl,
+    .sidebar.mini .sb-foot-text { display: none; }
+    .sidebar.mini .sb-link { justify-content: center; padding: .75rem 0; gap: 0; border-left: none; }
+    .sidebar.mini .sb-link.active { border-right: 3px solid var(--accent); }
+    .sidebar.mini .sb-link .bi    { width: auto; font-size: 1.2rem; }
+    .sidebar.mini .sb-brand-inner { justify-content: center; }
+
+    /* Masaüstü çekme kolu */
+    .sb-toggle-tab {
       position: fixed; top: 50%; left: var(--sb-w);
       transform: translateY(-50%);
-      width: 18px; height: 56px;
-      background: var(--sb-bg); border-radius: 0 8px 8px 0;
+      width: 18px; height: 52px;
+      background: var(--sb-bg); border-radius: 0 7px 7px 0;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; color: rgba(255,255,255,.7); font-size: .75rem;
-      z-index: 201; box-shadow: 3px 0 8px rgba(0,0,0,.2);
+      box-shadow: 3px 0 8px rgba(0,0,0,.18);
       transition: left var(--tr), background var(--tr);
-      user-select: none;
+      z-index: 1030; user-select: none;
     }
-    .sb-tab:hover  { background: var(--sb-hov); color: #fff; }
-    .sb-tab.mini   { left: var(--sb-mini); }
+    .sb-toggle-tab:hover { background: var(--sb-hov); color: #fff; }
+    .sb-toggle-tab.mini  { left: var(--sb-mini); }
 
-    /* ══════════════════════════════
-       MOBİL ÜST BAR  (default: gizli)
-    ══════════════════════════════ */
-    .mob-bar {
-      display: none;                         /* masaüstünde gizli */
-      position: fixed; top: 0; left: 0; right: 0;
-      height: var(--mob-h);
-      background: var(--sb-bg); z-index: 300;
-      align-items: center; justify-content: space-between;
-      padding: 0 1rem;
-      padding-top: env(safe-area-inset-top);
-      box-shadow: 0 2px 8px rgba(0,0,0,.3);
-    }
-    .mob-brand { color: #fff; font-weight: 700; font-size: 1rem; }
-    .mob-btn {
-      background: none; border: none; color: #fff; font-size: 1.5rem;
-      padding: 0; cursor: pointer; border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      width: 44px; height: 44px;
-    }
-    .mob-btn:active { background: rgba(255,255,255,.15); }
-
-    /* ══════════════════════════════
-       BOOTSTRAP OFFCANVASí renk override
-    ══════════════════════════════ */
-    #mobileMenu {
-      background: var(--sb-bg) !important;
-      width: var(--sb-w) !important;
-      border-right: none;
-    }
-    #mobileMenu .offcanvas-header {
-      border-bottom: 1px solid rgba(255,255,255,.12);
-      padding: 1rem 1.1rem;
-    }
-    #mobileMenu .offcanvas-title {
-      color: #fff; font-weight: 700; font-size: .97rem;
-    }
-    #mobileMenu .btn-close {
-      filter: invert(1) grayscale(100%) brightness(200%);
-      opacity: .6;
-    }
-    #mobileMenu .offcanvas-body { padding: 0; overflow-y: auto; }
-
-    /* ══════════════════════════════
-       ANA İÇERİK
-    ══════════════════════════════ */
-    .main {
+    /* ── Ana içerik ── */
+    .main-wrap {
       margin-left: var(--sb-w);
       min-height: 100vh;
       transition: margin-left var(--tr);
     }
-    .main.mini { margin-left: var(--sb-mini); }
+    .main-wrap.mini { margin-left: var(--sb-mini); }
 
+    /* Masaüstünde topbar sayfanın en üstünde sabit */
     .topbar {
-      background: #fff; padding: .85rem 1.5rem;
+      background: #fff;
       border-bottom: 1px solid #dee2e6;
+      padding: .85rem 1.5rem;
       position: sticky; top: 0; z-index: 100;
       display: flex; justify-content: space-between;
       align-items: center; flex-wrap: wrap; gap: .5rem;
     }
-    .topbar .page-title { font-size: 1rem; font-weight: 600; margin: 0; color: #1b3a5c; }
-    .topbar .page-sub   { font-size: .78rem; color: #6c757d; margin: 0; }
-    .content { padding: 1.5rem; }
+    .page-title { font-size: 1rem; font-weight: 600; color: #1b3a5c; margin: 0; }
+    .page-sub   { font-size: .78rem; color: #6c757d; margin: 0; }
+    .content-area { padding: 1.5rem; }
 
-    /* ══════════════════════════════
-       KARTLAR / TABLOLAR
-    ══════════════════════════════ */
-    .card { border: 1px solid #dde3ec; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.045); }
+    /* ── Mobil ── */
+    @media (max-width: 767.98px) {
+      .main-wrap { margin-left: 0 !important; padding-top: 56px; }
+      .topbar    { padding: .7rem 1rem; }
+      .content-area { padding: .9rem; }
+    }
+
+    /* ── Offcanvas renk ── */
+    #mob-offcanvas {
+      background: var(--sb-bg) !important;
+      max-width: var(--sb-w);
+    }
+    #mob-offcanvas .offcanvas-header {
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+    #mob-offcanvas .offcanvas-title { color: #fff; font-weight: 700; }
+    #mob-offcanvas .btn-close {
+      filter: invert(1) grayscale(1) brightness(2); opacity: .65;
+    }
+    #mob-offcanvas .offcanvas-body { padding: 0; }
+
+    /* ── Kart / tablo ── */
+    .card { border: 1px solid #dde3ec; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
     .card-header { background: #fff; border-bottom: 1px solid #dde3ec; font-weight: 600; border-radius: 10px 10px 0 0 !important; }
     .card-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .stat-card { background: #fff; border-radius: 10px; padding: 1.3rem 1.4rem; border: 1px solid #dde3ec; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+    .stat-card { background: #fff; border-radius: 10px; padding: 1.3rem; border: 1px solid #dde3ec; }
     .stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; flex-shrink: 0; }
     .table { min-width: 480px; }
-    .table thead th { background: #f7f9fc; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; border-top: none; white-space: nowrap; }
+    .table thead th { background: #f7f9fc; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; white-space: nowrap; }
     .table tbody tr:hover { background: #f7f9fc; }
 
-    /* BADGES */
+    /* ── Badge ── */
     .bd { display: inline-block; padding: .25em .55em; border-radius: 5px; font-size: .75rem; font-weight: 600; }
     .bd-satilik{background:#dbeafe;color:#1d4ed8;} .bd-kiralik{background:#ede9fe;color:#6d28d9;}
     .bd-aktif{background:#dcfce7;color:#166534;}   .bd-satildi{background:#ffedd5;color:#9a3412;}
@@ -188,202 +142,146 @@
     .bd-cok_ilgileniyor{background:#dcfce7;color:#166534;}
     .bd-degil{background:#fee2e2;color:#991b1b;}
 
-    /* BUTONLAR / FORM */
+    /* ── Butonlar ── */
     .btn { min-height: 38px; }
     .btn-primary { background: var(--sb-bg); border-color: var(--sb-bg); }
     .btn-primary:hover { background: var(--sb-hov); border-color: var(--sb-hov); }
     .btn-outline-primary { color: var(--sb-bg); border-color: var(--sb-bg); }
     .btn-outline-primary:hover { background: var(--sb-bg); border-color: var(--sb-bg); }
-    .form-control, .form-select { font-size: 16px; }
+    .form-control, .form-select { font-size: 16px; } /* iOS zoom engeli */
     .form-control:focus, .form-select:focus { border-color: var(--sb-bg); box-shadow: 0 0 0 .2rem rgba(27,58,92,.18); }
     .delete-confirm { cursor: pointer; }
-
-    /* ══════════════════════════════
-       MOBİL  ≤ 767px
-    ══════════════════════════════ */
-    @media (max-width: 767.98px) {
-      /* Mobil topbar'ı göster */
-      .mob-bar { display: flex; }
-
-      /* Masaüstü sidebar ve tab'ı gizle */
-      .sidebar { display: none !important; }
-      .sb-tab  { display: none !important; }
-
-      /* İçerik üst bar kadar aşağı */
-      .main   { margin-left: 0 !important; padding-top: var(--mob-h); }
-      .topbar { top: var(--mob-h); padding: .7rem 1rem; }
-      .content { padding: .875rem; }
-
-      /* Stat kartları 2'li */
-      .col-6.col-xl-3 { flex: 0 0 50%; max-width: 50%; }
-
-      /* Padding düzeltmeleri */
-      .card-header.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
-      .card-body.p-4    { padding: 1rem !important; }
-      .card-body.px-4   { padding-left: 1rem !important; padding-right: 1rem !important; }
-      .nav-tabs .nav-link { padding: .5rem .65rem; font-size: .83rem; }
-      .list-group-item.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
-    }
-
-    @media (max-width: 400px) {
-      .stat-icon { width: 38px; height: 38px; font-size: 1rem; }
-      .stat-card { padding: .85rem; }
-    }
   </style>
 </head>
 <body>
 
-<!-- ══════════════════════
-     MOBİL ÜST BAR
-══════════════════════ -->
-<div class="mob-bar">
-  <button class="mob-btn"
+{# ═══════════════════════════════════════════
+   1. MOBİL NAVBAR — sadece <768px görünür
+   Bootstrap: d-flex d-md-none
+═══════════════════════════════════════════ #}
+<nav class="navbar d-flex d-md-none align-items-center px-3 fixed-top"
+     style="background:var(--sb-bg);height:56px;z-index:1040;">
+
+  {# Hamburger — offcanvas açar #}
+  <button class="navbar-toggler border-0 p-1 me-2"
           type="button"
           data-bs-toggle="offcanvas"
-          data-bs-target="#mobileMenu"
-          aria-controls="mobileMenu">
-    <i class="bi bi-list"></i>
+          data-bs-target="#mob-offcanvas"
+          aria-controls="mob-offcanvas"
+          aria-label="Menü">
+    <span class="navbar-toggler-icon"></span>
   </button>
-  <span class="mob-brand"><i class="bi bi-building me-1"></i>Emlak Pro</span>
-  <a href="{{ url_for('randevu_ekle') }}" class="mob-btn">
+
+  <span class="navbar-brand text-white mb-0 me-auto fw-bold" style="font-size:1rem;">
+    <i class="bi bi-building me-1"></i>Emlak Pro
+  </span>
+
+  <a href="{{ url_for('randevu_ekle') }}" class="text-white text-decoration-none fs-5 p-1">
     <i class="bi bi-calendar-plus"></i>
   </a>
-</div>
+</nav>
 
-<!-- ══════════════════════
-     MOBİL OFFCANVAS (Bootstrap 5)
-══════════════════════ -->
+{# ═══════════════════════════════════════════
+   2. MOBİL OFFCANVAS (Bootstrap 5)
+   Offcanvas'ın kendisinde d-* sınıfı YOK —
+   sadece trigger mobilde görünür, bu yeterli.
+═══════════════════════════════════════════ #}
 <div class="offcanvas offcanvas-start"
      tabindex="-1"
-     id="mobileMenu"
-     aria-labelledby="mobileMenuLabel">
+     id="mob-offcanvas"
+     aria-labelledby="mob-offcanvas-label">
 
   <div class="offcanvas-header">
-    <span class="offcanvas-title" id="mobileMenuLabel">
+    <span class="offcanvas-title" id="mob-offcanvas-label">
       <i class="bi bi-building me-2"></i>Emlak Pro
     </span>
-    <button type="button"
-            class="btn-close"
-            data-bs-dismiss="offcanvas"
-            aria-label="Kapat"></button>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Kapat"></button>
   </div>
 
   <div class="offcanvas-body">
-    <div class="sb-sec">Genel</div>
-    <ul class="nav flex-column sb-nav">
-      <li>
-        <a href="{{ url_for('index') }}"
-           data-bs-dismiss="offcanvas"
-           class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
-          <i class="bi bi-speedometer2"></i>
-          <span class="nav-text">Özet Pano</span>
-        </a>
-      </li>
-    </ul>
+    <div class="sb-section">Genel</div>
+    <a href="{{ url_for('index') }}" data-bs-dismiss="offcanvas"
+       class="sb-link {% if request.endpoint == 'index' %}active{% endif %}">
+      <i class="bi bi-speedometer2"></i><span class="lbl">Özet Pano</span>
+    </a>
 
-    <div class="sb-sec">Yönetim</div>
-    <ul class="nav flex-column sb-nav">
-      <li>
-        <a href="{{ url_for('musteriler') }}"
-           data-bs-dismiss="offcanvas"
-           class="nav-link {% if request.endpoint and 'musteri' in request.endpoint and 'ilan' not in request.endpoint %}active{% endif %}">
-          <i class="bi bi-people-fill"></i>
-          <span class="nav-text">Müşteriler</span>
-        </a>
-      </li>
-      <li>
-        <a href="{{ url_for('ilanlar') }}"
-           data-bs-dismiss="offcanvas"
-           class="nav-link {% if request.endpoint and 'ilan' in request.endpoint and 'musteri' not in request.endpoint %}active{% endif %}">
-          <i class="bi bi-house-fill"></i>
-          <span class="nav-text">İlanlar</span>
-        </a>
-      </li>
-      <li>
-        <a href="{{ url_for('randevular') }}"
-           data-bs-dismiss="offcanvas"
-           class="nav-link {% if request.endpoint and 'randevu' in request.endpoint %}active{% endif %}">
-          <i class="bi bi-calendar3"></i>
-          <span class="nav-text">Randevular</span>
-        </a>
-      </li>
-    </ul>
+    <div class="sb-section">Yönetim</div>
+    <a href="{{ url_for('musteriler') }}" data-bs-dismiss="offcanvas"
+       class="sb-link {% if request.endpoint and 'musteri' in request.endpoint and 'ilan' not in request.endpoint %}active{% endif %}">
+      <i class="bi bi-people-fill"></i><span class="lbl">Müşteriler</span>
+    </a>
+    <a href="{{ url_for('ilanlar') }}" data-bs-dismiss="offcanvas"
+       class="sb-link {% if request.endpoint and 'ilan' in request.endpoint and 'musteri' not in request.endpoint %}active{% endif %}">
+      <i class="bi bi-house-fill"></i><span class="lbl">İlanlar</span>
+    </a>
+    <a href="{{ url_for('randevular') }}" data-bs-dismiss="offcanvas"
+       class="sb-link {% if request.endpoint and 'randevu' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-calendar3"></i><span class="lbl">Randevular</span>
+    </a>
   </div>
 </div>
 
-<!-- ══════════════════════
-     MASAÜSTÜ SIDEBAR
-══════════════════════ -->
-<nav class="sidebar" id="sidebar">
-  <div class="sb-brand">
-    <i class="bi bi-building sb-logo"></i>
-    <div class="sb-titles">
-      <p class="sb-name">Emlak Pro</p>
-      <p class="sb-sub">Danışmanlık Sistemi</p>
+{# ═══════════════════════════════════════════
+   3. MASAÜSTÜ SIDEBAR — d-none d-md-flex
+   768px altında Bootstrap tamamen gizler.
+═══════════════════════════════════════════ #}
+<nav class="sidebar d-none d-md-flex flex-column position-fixed top-0 start-0 vh-100"
+     id="desktop-sidebar">
+
+  <div class="d-flex align-items-center gap-2 sb-brand-inner px-3 py-4 border-bottom border-white border-opacity-10">
+    <i class="bi bi-building text-white fs-5 flex-shrink-0"></i>
+    <div class="sb-brand-text">
+      <p class="name">Emlak Pro</p>
+      <p class="sub">Danışmanlık Sistemi</p>
     </div>
   </div>
 
-  <div class="sb-sec">Genel</div>
-  <ul class="nav flex-column sb-nav">
-    <li>
-      <a href="{{ url_for('index') }}" title="Özet Pano"
-         class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
-        <i class="bi bi-speedometer2"></i>
-        <span class="nav-text">Özet Pano</span>
-      </a>
-    </li>
-  </ul>
+  <div class="sb-section">Genel</div>
+  <a href="{{ url_for('index') }}" title="Özet Pano"
+     class="sb-link {% if request.endpoint == 'index' %}active{% endif %}">
+    <i class="bi bi-speedometer2"></i><span class="lbl">Özet Pano</span>
+  </a>
 
-  <div class="sb-sec">Yönetim</div>
-  <ul class="nav flex-column sb-nav">
-    <li>
-      <a href="{{ url_for('musteriler') }}" title="Müşteriler"
-         class="nav-link {% if request.endpoint and 'musteri' in request.endpoint and 'ilan' not in request.endpoint %}active{% endif %}">
-        <i class="bi bi-people-fill"></i>
-        <span class="nav-text">Müşteriler</span>
-      </a>
-    </li>
-    <li>
-      <a href="{{ url_for('ilanlar') }}" title="İlanlar"
-         class="nav-link {% if request.endpoint and 'ilan' in request.endpoint and 'musteri' not in request.endpoint %}active{% endif %}">
-        <i class="bi bi-house-fill"></i>
-        <span class="nav-text">İlanlar</span>
-      </a>
-    </li>
-    <li>
-      <a href="{{ url_for('randevular') }}" title="Randevular"
-         class="nav-link {% if request.endpoint and 'randevu' in request.endpoint %}active{% endif %}">
-        <i class="bi bi-calendar3"></i>
-        <span class="nav-text">Randevular</span>
-      </a>
-    </li>
-  </ul>
+  <div class="sb-section">Yönetim</div>
+  <a href="{{ url_for('musteriler') }}" title="Müşteriler"
+     class="sb-link {% if request.endpoint and 'musteri' in request.endpoint and 'ilan' not in request.endpoint %}active{% endif %}">
+    <i class="bi bi-people-fill"></i><span class="lbl">Müşteriler</span>
+  </a>
+  <a href="{{ url_for('ilanlar') }}" title="İlanlar"
+     class="sb-link {% if request.endpoint and 'ilan' in request.endpoint and 'musteri' not in request.endpoint %}active{% endif %}">
+    <i class="bi bi-house-fill"></i><span class="lbl">İlanlar</span>
+  </a>
+  <a href="{{ url_for('randevular') }}" title="Randevular"
+     class="sb-link {% if request.endpoint and 'randevu' in request.endpoint %}active{% endif %}">
+    <i class="bi bi-calendar3"></i><span class="lbl">Randevular</span>
+  </a>
 
-  <div class="sb-foot">
-    <span class="text-white-50" style="font-size:.7rem;">
+  <div class="mt-auto px-3 pb-3 sb-foot-text">
+    <small class="text-white-50">
       <i class="bi bi-circle-fill text-success" style="font-size:.45rem;"></i> Çevrimiçi
-    </span>
+    </small>
   </div>
 </nav>
 
-<!-- Masaüstü çekme kolu -->
-<div class="sb-tab" id="sbTab" onclick="deskToggle()" title="Daralt / Genişlet">
-  <i class="bi bi-chevron-left" id="tabIcon"></i>
+{# Masaüstü çekme kolu (mobilde Bootstrap d-none d-md-flex ile gizlenir) #}
+<div class="sb-toggle-tab d-none d-md-flex" id="sb-tab" onclick="deskToggle()" title="Daralt / Genişlet">
+  <i class="bi bi-chevron-left" id="sb-tab-icon"></i>
 </div>
 
-<!-- ══════════════════════
-     ANA İÇERİK
-══════════════════════ -->
-<div class="main" id="mainEl">
+{# ═══════════════════════════════════════════
+   4. ANA İÇERİK
+═══════════════════════════════════════════ #}
+<div class="main-wrap" id="main-wrap">
+
   <div class="topbar">
     <div>
       <p class="page-title">{% block page_title %}{% endblock %}</p>
       <p class="page-sub">{% block page_sub %}{% endblock %}</p>
     </div>
-    <div>{% block topbar_action %}{% endblock %}</div>
+    <div class="d-flex gap-2 flex-wrap">{% block topbar_action %}{% endblock %}</div>
   </div>
 
-  <div class="content">
+  <div class="content-area">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}{% for cat, msg in messages %}
         <div class="alert alert-{{ 'success' if cat=='success' else 'danger' if cat=='danger' else 'warning' }} alert-dismissible fade show mb-3">
@@ -393,30 +291,33 @@
     {% endwith %}
     {% block content %}{% endblock %}
   </div>
-</div>
+
+</div><!-- /main-wrap -->
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  const sidebar = document.getElementById('sidebar');
-  const mainEl  = document.getElementById('mainEl');
-  const sbTab   = document.getElementById('sbTab');
-  const tabIcon = document.getElementById('tabIcon');
+  const deskSidebar = document.getElementById('desktop-sidebar');
+  const mainWrap    = document.getElementById('main-wrap');
+  const sbTab       = document.getElementById('sb-tab');
+  const sbTabIcon   = document.getElementById('sb-tab-icon');
 
   function deskToggle() {
-    const mini = sidebar.classList.toggle('mini');
-    mainEl.classList.toggle('mini', mini);
+    const mini = deskSidebar.classList.toggle('mini');
+    mainWrap.classList.toggle('mini', mini);
     sbTab.classList.toggle('mini', mini);
-    tabIcon.className = mini ? 'bi bi-chevron-right' : 'bi bi-chevron-left';
+    sbTabIcon.className = mini ? 'bi bi-chevron-right' : 'bi bi-chevron-left';
     localStorage.setItem('sbMini', mini ? '1' : '0');
   }
 
+  // Sayfa yüklenince kayıtlı durumu uygula (sadece masaüstünde)
   if (window.innerWidth >= 768 && localStorage.getItem('sbMini') === '1') {
-    sidebar.classList.add('mini');
-    mainEl.classList.add('mini');
+    deskSidebar.classList.add('mini');
+    mainWrap.classList.add('mini');
     sbTab.classList.add('mini');
-    tabIcon.className = 'bi bi-chevron-right';
+    sbTabIcon.className = 'bi bi-chevron-right';
   }
 
+  // Silme onayı
   document.querySelectorAll('.delete-confirm').forEach(btn => {
     btn.addEventListener('click', function () {
       if (confirm(this.dataset.confirm || 'Silmek istediğinizden emin misiniz?'))
