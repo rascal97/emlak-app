@@ -324,14 +324,126 @@
 </script>
 {% block scripts %}{% endblock %}
 
-<!-- Service Worker kaydı -->
+<!-- PWA Kurulum Banneri -->
+<div id="pwa-banner" style="display:none;position:fixed;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 10px);
+     left:12px;right:12px;background:#1b3a5c;color:white;border-radius:14px;
+     padding:14px 16px;z-index:500;box-shadow:0 4px 20px rgba(0,0,0,.35);
+     align-items:center;gap:12px;">
+  <img src="/static/icons/icon-192.png" style="width:40px;height:40px;border-radius:10px;flex-shrink:0;">
+  <div style="flex:1;min-width:0;">
+    <div style="font-size:.88rem;font-weight:700;">Emlak Pro'yu Yükle</div>
+    <div id="pwa-sub" style="font-size:.76rem;opacity:.8;margin-top:2px;"></div>
+  </div>
+  <button id="pwa-install-btn" style="display:none;background:white;color:#1b3a5c;border:none;
+          border-radius:8px;padding:8px 14px;font-size:.82rem;font-weight:700;cursor:pointer;flex-shrink:0;">
+    Yükle
+  </button>
+  <button onclick="pwaDismiss()" style="background:none;border:none;color:rgba(255,255,255,.7);
+          font-size:1.2rem;cursor:pointer;padding:4px;flex-shrink:0;line-height:1;">✕</button>
+</div>
+
+<!-- iOS Rehber Modalı -->
+<div id="ios-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:600;
+     align-items:flex-end;justify-content:center;padding-bottom:env(safe-area-inset-bottom);">
+  <div style="background:white;border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:500px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <span style="font-size:1rem;font-weight:700;color:#1b3a5c;">Ana Ekrana Ekle</span>
+      <button onclick="document.getElementById('ios-modal').style.display='none'"
+              style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#6b7280;">✕</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+      <img src="/static/icons/icon-192.png" style="width:52px;height:52px;border-radius:12px;">
+      <div>
+        <div style="font-weight:700;">Emlak Pro</div>
+        <div style="font-size:.8rem;color:#6b7280;">web-production-b553c.up.railway.app</div>
+      </div>
+    </div>
+    <div style="font-size:.88rem;color:#374151;line-height:1.7;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="width:28px;height:28px;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;">1</span>
+        <span>Alt menüdeki <strong>Paylaş</strong> butonuna dokunun <span style="font-size:1.1rem;">⎙</span></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="width:28px;height:28px;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;">2</span>
+        <span>Listeden <strong>"Ana Ekrana Ekle"</strong> seçeneğini bulun</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="width:28px;height:28px;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;">3</span>
+        <span>Sağ üstteki <strong>"Ekle"</strong> butonuna dokunun</span>
+      </div>
+    </div>
+    <button onclick="document.getElementById('ios-modal').style.display='none';localStorage.setItem('pwaDismissed','1');"
+            style="display:block;width:100%;margin-top:20px;background:#1b3a5c;color:white;border:none;
+                   border-radius:12px;padding:14px;font-size:.95rem;font-weight:600;cursor:pointer;">
+      Anladım
+    </button>
+  </div>
+</div>
+
+<!-- Service Worker + PWA kurulum -->
 <script>
+  // ── Service Worker ──
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
+    window.addEventListener('load', () =>
       navigator.serviceWorker.register('/sw.js', { scope: '/' })
-        .then(reg => console.log('SW kayıtlı:', reg.scope))
-        .catch(err => console.log('SW hatası:', err));
-    });
+        .catch(e => console.log('SW:', e))
+    );
+  }
+
+  // ── PWA Kurulum ──
+  let deferredPrompt = null;
+  const banner       = document.getElementById('pwa-banner');
+  const installBtn   = document.getElementById('pwa-install-btn');
+  const pwaSub       = document.getElementById('pwa-sub');
+
+  function pwaDismiss() {
+    banner.style.display = 'none';
+    localStorage.setItem('pwaDismissed', '1');
+  }
+
+  // Zaten yüklü veya kullanıcı kapattıysa gösterme
+  const alreadyInstalled = window.matchMedia('(display-mode: standalone)').matches
+                        || window.navigator.standalone;
+  const dismissed        = localStorage.getItem('pwaDismissed') === '1';
+
+  if (!alreadyInstalled && !dismissed) {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    if (isIOS) {
+      // iOS: Safari paylaş menüsü talimatları
+      pwaSub.textContent = 'Safari\'de Paylaş → Ana Ekrana Ekle';
+      banner.style.display = 'flex';
+      banner.querySelector('button:not([onclick="pwaDismiss()"])').style.display = 'none';
+      // Banner'a tıklayınca modalı aç
+      banner.style.cursor = 'pointer';
+      banner.addEventListener('click', (e) => {
+        if (e.target.closest('button[onclick]')) return;
+        document.getElementById('ios-modal').style.display = 'flex';
+      });
+    } else {
+      // Android / Chrome: otomatik prompt
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        pwaSub.textContent = 'Tek dokunuşla ana ekrana ekleyin';
+        installBtn.style.display = 'block';
+        banner.style.display = 'flex';
+      });
+
+      installBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        banner.style.display = 'none';
+        localStorage.setItem('pwaDismissed', '1');
+      });
+
+      window.addEventListener('appinstalled', () => {
+        banner.style.display = 'none';
+        localStorage.setItem('pwaDismissed', '1');
+      });
+    }
   }
 </script>
 </body>
