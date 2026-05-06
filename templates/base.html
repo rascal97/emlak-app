@@ -9,53 +9,105 @@
   <style>
     :root {
       --sb-w: 255px;
+      --sb-w-mini: 64px;
       --sb-bg: #1b3a5c;
       --sb-hover: #254e7d;
       --sb-active: #2d5f99;
       --accent: #e67e22;
-      --mob-topbar-h: 56px;
+      --mob-h: 56px;
+      --trans: 0.22s ease;
     }
 
+    * { box-sizing: border-box; }
     body {
       background: #f1f4f8;
       font-family: 'Segoe UI', system-ui, sans-serif;
-      /* iOS safe area */
       padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* ── Sidebar ── */
+    /* ══════════════════════════════
+       SIDEBAR
+    ══════════════════════════════ */
     .sidebar {
       position: fixed; top: 0; left: 0;
       width: var(--sb-w); height: 100vh;
-      background: var(--sb-bg); z-index: 200;
-      display: flex; flex-direction: column; overflow-y: auto;
-      transition: transform 0.25s ease;
+      background: var(--sb-bg);
+      z-index: 200;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      transition: width var(--trans);
     }
-    .sb-brand {
-      padding: 1.4rem 1.2rem;
-      border-bottom: 1px solid rgba(255,255,255,.1);
-    }
-    .sb-brand .name { color: #fff; font-size: 1.05rem; font-weight: 700; margin: 0; }
-    .sb-brand .sub  { color: rgba(255,255,255,.45); font-size: .72rem; }
 
-    .sb-section {
-      padding: .9rem 1.2rem .2rem;
-      color: rgba(255,255,255,.3);
-      font-size: .68rem; text-transform: uppercase; letter-spacing: .1em;
+    /* Brand alanı */
+    .sb-brand {
+      padding: 1.2rem 1.1rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0; min-height: 72px;
+      overflow: hidden;
     }
+    .sb-brand-info .name { color: #fff; font-size: 1rem; font-weight: 700; margin: 0; white-space: nowrap; }
+    .sb-brand-info .sub  { color: rgba(255,255,255,.4); font-size: .7rem; white-space: nowrap; }
+
+    /* Sidebar daralt/genişlet butonu */
+    .sb-collapse-btn {
+      flex-shrink: 0;
+      background: rgba(255,255,255,.1);
+      border: none; border-radius: 6px;
+      color: rgba(255,255,255,.7);
+      width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: .85rem;
+      transition: all .15s;
+    }
+    .sb-collapse-btn:hover { background: rgba(255,255,255,.2); color: #fff; }
+
+    /* Bölüm başlıkları */
+    .sb-section {
+      padding: .85rem 1.1rem .2rem;
+      color: rgba(255,255,255,.3);
+      font-size: .65rem; text-transform: uppercase; letter-spacing: .1em;
+      white-space: nowrap; overflow: hidden;
+      transition: opacity var(--trans), padding var(--trans);
+    }
+
+    /* Nav linkleri */
     .sidebar .nav-link {
       color: rgba(255,255,255,.65);
-      padding: .75rem 1.2rem;
-      display: flex; align-items: center; gap: .65rem;
+      padding: .7rem 1.1rem;
+      display: flex; align-items: center; gap: .7rem;
       border-left: 3px solid transparent;
       transition: all .15s;
-      min-height: 48px;
+      min-height: 46px;
+      white-space: nowrap;
+      overflow: hidden;
     }
     .sidebar .nav-link:hover  { color: #fff; background: var(--sb-hover); }
     .sidebar .nav-link.active { color: #fff; background: var(--sb-active); border-left-color: var(--accent); }
-    .sidebar .nav-link .bi   { font-size: 1.05rem; }
+    .sidebar .nav-link .bi   { font-size: 1rem; flex-shrink: 0; width: 20px; text-align: center; }
+    .sidebar .nav-link .nav-text { transition: opacity var(--trans); }
 
-    /* ── Overlay (mobile) ── */
+    /* Alt bilgi */
+    .sb-footer { padding: .75rem 1.1rem; overflow: hidden; white-space: nowrap; }
+
+    /* ── Daraltılmış hâl ── */
+    .sidebar.mini {
+      width: var(--sb-w-mini);
+    }
+    .sidebar.mini .sb-brand-info,
+    .sidebar.mini .sb-section,
+    .sidebar.mini .nav-text,
+    .sidebar.mini .sb-footer { opacity: 0; width: 0; padding: 0; margin: 0; overflow: hidden; }
+    .sidebar.mini .sb-brand { justify-content: center; padding: 1rem .5rem; }
+    .sidebar.mini .sb-section { height: 0; }
+    .sidebar.mini .nav-link { justify-content: center; padding: .7rem 0; gap: 0; border-left-color: transparent !important; }
+    .sidebar.mini .nav-link.active { border-left: none; border-right: 3px solid var(--accent); }
+    .sidebar.mini .nav-link .bi { width: auto; font-size: 1.15rem; }
+    .sidebar.mini .sb-collapse-btn { margin: 0 auto; }
+
+    /* ══════════════════════════════
+       OVERLAY  (mobile)
+    ══════════════════════════════ */
     .sidebar-overlay {
       display: none;
       position: fixed; inset: 0;
@@ -64,30 +116,39 @@
     }
     .sidebar-overlay.open { display: block; }
 
-    /* ── Mobile top bar ── */
+    /* ══════════════════════════════
+       MOBİL ÜST BAR
+    ══════════════════════════════ */
     .mobile-topbar {
       display: none;
       position: fixed; top: 0; left: 0; right: 0;
-      height: var(--mob-topbar-h);
+      height: var(--mob-h);
       background: var(--sb-bg);
       z-index: 300;
-      align-items: center;
-      justify-content: space-between;
+      align-items: center; justify-content: space-between;
       padding: 0 1rem;
       padding-top: env(safe-area-inset-top);
       box-shadow: 0 2px 8px rgba(0,0,0,.25);
     }
-    .mobile-topbar .mob-brand { color: #fff; font-weight: 700; font-size: 1rem; }
-    .hamburger-btn {
+    .mob-brand { color: #fff; font-weight: 700; font-size: 1rem; }
+    .mob-btn {
       background: none; border: none;
       color: #fff; font-size: 1.5rem;
-      padding: 0.4rem 0.5rem; cursor: pointer;
-      display: flex; align-items: center; border-radius: 6px;
+      padding: .4rem .5rem; cursor: pointer;
+      display: flex; align-items: center;
+      border-radius: 6px; min-width: 44px; min-height: 44px; justify-content: center;
     }
-    .hamburger-btn:active { background: rgba(255,255,255,.15); }
+    .mob-btn:active { background: rgba(255,255,255,.15); }
 
-    /* ── Main content ── */
-    .main { margin-left: var(--sb-w); min-height: 100vh; }
+    /* ══════════════════════════════
+       ANA İÇERİK
+    ══════════════════════════════ */
+    .main {
+      margin-left: var(--sb-w);
+      min-height: 100vh;
+      transition: margin-left var(--trans);
+    }
+    .main.mini { margin-left: var(--sb-w-mini); }
 
     .topbar {
       background: #fff; padding: .85rem 1.5rem;
@@ -101,25 +162,26 @@
 
     .content { padding: 1.5rem; }
 
-    /* ── Cards ── */
+    /* ══════════════════════════════
+       KARTLAR / TABLOLAR
+    ══════════════════════════════ */
     .card { border: 1px solid #dde3ec; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.045); }
     .card-header { background: #fff; border-bottom: 1px solid #dde3ec; font-weight: 600; border-radius: 10px 10px 0 0 !important; }
-
-    /* Table scroll on mobile */
     .card-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
     .stat-card { background: #fff; border-radius: 10px; padding: 1.3rem 1.4rem; border: 1px solid #dde3ec; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
     .stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; flex-shrink: 0; }
 
-    /* ── Table ── */
-    .table { min-width: 500px; } /* force horizontal scroll on narrow screens */
+    .table { min-width: 480px; }
     .table thead th {
       background: #f7f9fc; font-size: .75rem; text-transform: uppercase;
       letter-spacing: .05em; color: #6c757d; border-top: none; white-space: nowrap;
     }
     .table tbody tr:hover { background: #f7f9fc; }
 
-    /* ── Badges ── */
+    /* ══════════════════════════════
+       BADGES
+    ══════════════════════════════ */
     .bd { display: inline-block; padding: .25em .55em; border-radius: 5px; font-size: .75rem; font-weight: 600; }
     .bd-satilik    { background: #dbeafe; color: #1d4ed8; }
     .bd-kiralik    { background: #ede9fe; color: #6d28d9; }
@@ -134,85 +196,65 @@
     .bd-cok_ilgileniyor { background: #dcfce7; color: #166534; }
     .bd-degil           { background: #fee2e2; color: #991b1b; }
 
-    /* ── Buttons ── */
+    /* ══════════════════════════════
+       BUTONLAR / FORM
+    ══════════════════════════════ */
+    .btn { min-height: 38px; }
     .btn-primary { background: var(--sb-bg); border-color: var(--sb-bg); }
     .btn-primary:hover { background: var(--sb-hover); border-color: var(--sb-hover); }
     .btn-outline-primary { color: var(--sb-bg); border-color: var(--sb-bg); }
     .btn-outline-primary:hover { background: var(--sb-bg); border-color: var(--sb-bg); }
-    .btn { min-height: 38px; }
 
-    /* ── Form ── */
-    .form-control, .form-select {
-      /* iOS zoom fix: font-size min 16px */
-      font-size: 16px;
-    }
+    .form-control, .form-select { font-size: 16px; } /* iOS zoom engel */
     .form-control:focus, .form-select:focus {
       border-color: var(--sb-bg);
       box-shadow: 0 0 0 .2rem rgba(27,58,92,.18);
     }
-    .form-label { font-size: .875rem; }
 
-    /* ── Delete confirm ── */
     .delete-confirm { cursor: pointer; }
 
-    /* ══════════════════════════════════════════
-       MOBILE  (max 767px)
-    ══════════════════════════════════════════ */
+    /* ══════════════════════════════
+       MOBİL  (≤ 767px)
+    ══════════════════════════════ */
     @media (max-width: 767.98px) {
-
-      /* Göster: hamburger topbar */
       .mobile-topbar { display: flex; }
+      .sb-collapse-btn { display: none; }   /* masaüstü butonu gizle */
 
-      /* Sidebar: ekran dışına taşı, açılınca geri getir */
+      /* Sidebar ekran dışında, overlay ile açılır */
       .sidebar {
         transform: translateX(-100%);
-        top: 0;
+        width: var(--sb-w) !important;      /* mini modunu ezip tam genişlik */
+        transition: transform var(--trans);
         padding-top: env(safe-area-inset-top);
       }
       .sidebar.open { transform: translateX(0); }
 
-      /* Ana içerik tam genişlik + topbar kadar boşluk */
-      .main {
-        margin-left: 0;
-        padding-top: var(--mob-topbar-h);
-      }
+      .sidebar .sb-brand-info,
+      .sidebar .sb-section,
+      .sidebar .nav-text,
+      .sidebar .sb-footer { opacity: 1 !important; width: auto !important; padding: revert; }
+      .sidebar .nav-link  { justify-content: flex-start !important; padding: .7rem 1.1rem !important; gap: .7rem !important; }
+      .sidebar .nav-link .bi { width: 20px !important; }
+      .sidebar.mini .nav-link.active { border-left: 3px solid var(--accent) !important; border-right: none !important; }
 
-      /* Sabit topbar biraz aşağıda */
-      .topbar { top: var(--mob-topbar-h); padding: .7rem 1rem; }
-
-      /* İçerik padding azalt */
+      .main, .main.mini { margin-left: 0; padding-top: var(--mob-h); }
+      .topbar { top: var(--mob-h); padding: .7rem 1rem; }
       .content { padding: .875rem; }
 
-      /* Stat kartları: 2 kolon */
-      .stat-card { padding: 1rem; }
-      .stat-card > div:last-child .text-muted { font-size: .78rem; }
+      .col-6.col-xl-3 { flex: 0 0 50%; max-width: 50%; }
 
-      /* Kart header padding */
-      .card-header { padding: .7rem 1rem; font-size: .9rem; }
+      .card-header.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+      .card-body.p-4   { padding: 1rem !important; }
+      .card-body.px-4  { padding-left: 1rem !important; padding-right: 1rem !important; }
 
-      /* Buton grubu sarmasın */
-      .topbar > div:last-child { display: flex; gap: .4rem; flex-wrap: wrap; }
+      .nav-tabs .nav-link { padding: .5rem .65rem; font-size: .83rem; }
 
-      /* İlan kartları tam genişlik */
-      .col-sm-6 { flex: 0 0 100%; max-width: 100%; }
-
-      /* Form label küçük */
-      .form-label { margin-bottom: .25rem; }
-
-      /* Büyük card body padding */
-      .card-body.p-4 { padding: 1rem !important; }
-      .card-body.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
-      .card-body.py-3 { padding-top: .75rem !important; padding-bottom: .75rem !important; }
-
-      /* Tab nav */
-      .nav-tabs .nav-link { padding: .5rem .75rem; font-size: .85rem; }
-
-      /* List group */
       .list-group-item.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
     }
 
     @media (max-width: 400px) {
-      .stat-card .stat-icon { width: 40px; height: 40px; font-size: 1.1rem; }
+      .stat-icon { width: 38px; height: 38px; font-size: 1rem; }
+      .stat-card { padding: .85rem; }
     }
   </style>
 </head>
@@ -220,31 +262,41 @@
 
 <!-- ── Mobil üst bar ── -->
 <div class="mobile-topbar">
-  <button class="hamburger-btn" onclick="sidebarToggle()" aria-label="Menü">
+  <button class="mob-btn" onclick="mobSidebarToggle()" aria-label="Menü">
     <i class="bi bi-list"></i>
   </button>
   <span class="mob-brand"><i class="bi bi-building me-1"></i>Emlak Pro</span>
-  <a href="{{ url_for('randevu_ekle') }}" class="hamburger-btn" title="Randevu Ekle">
+  <a href="{{ url_for('randevu_ekle') }}" class="mob-btn" title="Randevu Ekle">
     <i class="bi bi-calendar-plus"></i>
   </a>
 </div>
 
-<!-- ── Sidebar overlay (mobile tap to close) ── -->
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="sidebarToggle()"></div>
+<!-- ── Overlay (mobile) ── -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="mobSidebarToggle()"></div>
 
-<!-- ── Sidebar ── -->
+<!-- ══════════════════════════════
+     SIDEBAR
+══════════════════════════════ -->
 <nav class="sidebar" id="sidebar">
+
   <div class="sb-brand">
-    <p class="name"><i class="bi bi-building me-2"></i>Emlak Pro</p>
-    <p class="sub">Danışmanlık Sistemi</p>
+    <div class="sb-brand-info">
+      <p class="name"><i class="bi bi-building me-2"></i>Emlak Pro</p>
+      <p class="sub">Danışmanlık Sistemi</p>
+    </div>
+    <button class="sb-collapse-btn" onclick="deskSidebarToggle()" id="collapseBtn" title="Menüyü daralt">
+      <i class="bi bi-chevron-left" id="collapseIcon"></i>
+    </button>
   </div>
 
   <div class="sb-section">Genel</div>
   <ul class="nav flex-column">
     <li class="nav-item">
-      <a href="{{ url_for('index') }}" onclick="sidebarClose()"
+      <a href="{{ url_for('index') }}" onclick="mobSidebarClose()"
+         title="Özet Pano"
          class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
-        <i class="bi bi-speedometer2"></i> Özet Pano
+        <i class="bi bi-speedometer2"></i>
+        <span class="nav-text">Özet Pano</span>
       </a>
     </li>
   </ul>
@@ -252,34 +304,42 @@
   <div class="sb-section">Yönetim</div>
   <ul class="nav flex-column">
     <li class="nav-item">
-      <a href="{{ url_for('musteriler') }}" onclick="sidebarClose()"
+      <a href="{{ url_for('musteriler') }}" onclick="mobSidebarClose()"
+         title="Müşteriler"
          class="nav-link {% if request.endpoint and 'musteri' in request.endpoint and 'ilan' not in request.endpoint %}active{% endif %}">
-        <i class="bi bi-people-fill"></i> Müşteriler
+        <i class="bi bi-people-fill"></i>
+        <span class="nav-text">Müşteriler</span>
       </a>
     </li>
     <li class="nav-item">
-      <a href="{{ url_for('ilanlar') }}" onclick="sidebarClose()"
+      <a href="{{ url_for('ilanlar') }}" onclick="mobSidebarClose()"
+         title="İlanlar"
          class="nav-link {% if request.endpoint and 'ilan' in request.endpoint and 'musteri' not in request.endpoint %}active{% endif %}">
-        <i class="bi bi-house-fill"></i> İlanlar
+        <i class="bi bi-house-fill"></i>
+        <span class="nav-text">İlanlar</span>
       </a>
     </li>
     <li class="nav-item">
-      <a href="{{ url_for('randevular') }}" onclick="sidebarClose()"
+      <a href="{{ url_for('randevular') }}" onclick="mobSidebarClose()"
+         title="Randevular"
          class="nav-link {% if request.endpoint and 'randevu' in request.endpoint %}active{% endif %}">
-        <i class="bi bi-calendar3"></i> Randevular
+        <i class="bi bi-calendar3"></i>
+        <span class="nav-text">Randevular</span>
       </a>
     </li>
   </ul>
 
-  <div class="mt-auto sb-section" style="padding-top:1rem;">
+  <div class="mt-auto sb-footer">
     <span class="text-white-50" style="font-size:.7rem;">
       <i class="bi bi-circle-fill text-success" style="font-size:.5rem;"></i> Çevrimiçi
     </span>
   </div>
 </nav>
 
-<!-- ── Ana içerik ── -->
-<div class="main">
+<!-- ══════════════════════════════
+     ANA İÇERİK
+══════════════════════════════ -->
+<div class="main" id="mainContent">
   <div class="topbar">
     <div>
       <p class="page-title">{% block page_title %}{% endblock %}</p>
@@ -306,7 +366,42 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  /* Silme onay */
+  const sidebar    = document.getElementById('sidebar');
+  const mainEl     = document.getElementById('mainContent');
+  const overlay    = document.getElementById('sidebarOverlay');
+  const collapseIcon = document.getElementById('collapseIcon');
+
+  /* ── Masaüstü: daralt / genişlet ── */
+  function deskSidebarToggle() {
+    const mini = sidebar.classList.toggle('mini');
+    mainEl.classList.toggle('mini', mini);
+    collapseIcon.className = mini ? 'bi bi-chevron-right' : 'bi bi-chevron-left';
+    localStorage.setItem('sbMini', mini ? '1' : '0');
+  }
+
+  /* ── Mobil: aç / kapat ── */
+  function mobSidebarToggle() {
+    const open = sidebar.classList.toggle('open');
+    overlay.classList.toggle('open', open);
+    document.body.style.overflow = open ? 'hidden' : '';
+  }
+  function mobSidebarClose() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  /* ── Kayıtlı durumu uygula (masaüstü) ── */
+  if (window.innerWidth >= 768 && localStorage.getItem('sbMini') === '1') {
+    sidebar.classList.add('mini');
+    mainEl.classList.add('mini');
+    collapseIcon.className = 'bi bi-chevron-right';
+  }
+
+  /* ── ESC ile kapat ── */
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') mobSidebarClose(); });
+
+  /* ── Silme onay ── */
   document.querySelectorAll('.delete-confirm').forEach(btn => {
     btn.addEventListener('click', function () {
       if (confirm(this.dataset.confirm || 'Silmek istediğinizden emin misiniz?')) {
@@ -314,22 +409,6 @@
       }
     });
   });
-
-  /* Sidebar aç/kapa */
-  function sidebarToggle() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('sidebarOverlay').classList.toggle('open');
-    document.body.style.overflow =
-      document.getElementById('sidebar').classList.contains('open') ? 'hidden' : '';
-  }
-  function sidebarClose() {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('sidebarOverlay').classList.remove('open');
-    document.body.style.overflow = '';
-  }
-
-  /* ESC ile kapat */
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') sidebarClose(); });
 </script>
 {% block scripts %}{% endblock %}
 </body>
