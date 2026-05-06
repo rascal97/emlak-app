@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>{% block title %}Emlak Pro{% endblock %} — Emlak Danışmanlık</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -13,9 +13,15 @@
       --sb-hover: #254e7d;
       --sb-active: #2d5f99;
       --accent: #e67e22;
+      --mob-topbar-h: 56px;
     }
 
-    body { background: #f1f4f8; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body {
+      background: #f1f4f8;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      /* iOS safe area */
+      padding-bottom: env(safe-area-inset-bottom);
+    }
 
     /* ── Sidebar ── */
     .sidebar {
@@ -23,6 +29,7 @@
       width: var(--sb-w); height: 100vh;
       background: var(--sb-bg); z-index: 200;
       display: flex; flex-direction: column; overflow-y: auto;
+      transition: transform 0.25s ease;
     }
     .sb-brand {
       padding: 1.4rem 1.2rem;
@@ -38,16 +45,48 @@
     }
     .sidebar .nav-link {
       color: rgba(255,255,255,.65);
-      padding: .65rem 1.2rem;
+      padding: .75rem 1.2rem;
       display: flex; align-items: center; gap: .65rem;
       border-left: 3px solid transparent;
       transition: all .15s;
+      min-height: 48px;
     }
     .sidebar .nav-link:hover  { color: #fff; background: var(--sb-hover); }
     .sidebar .nav-link.active { color: #fff; background: var(--sb-active); border-left-color: var(--accent); }
-    .sidebar .nav-link .bi   { font-size: 1rem; }
+    .sidebar .nav-link .bi   { font-size: 1.05rem; }
 
-    /* ── Main ── */
+    /* ── Overlay (mobile) ── */
+    .sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 190;
+    }
+    .sidebar-overlay.open { display: block; }
+
+    /* ── Mobile top bar ── */
+    .mobile-topbar {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0;
+      height: var(--mob-topbar-h);
+      background: var(--sb-bg);
+      z-index: 300;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1rem;
+      padding-top: env(safe-area-inset-top);
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .mobile-topbar .mob-brand { color: #fff; font-weight: 700; font-size: 1rem; }
+    .hamburger-btn {
+      background: none; border: none;
+      color: #fff; font-size: 1.5rem;
+      padding: 0.4rem 0.5rem; cursor: pointer;
+      display: flex; align-items: center; border-radius: 6px;
+    }
+    .hamburger-btn:active { background: rgba(255,255,255,.15); }
+
+    /* ── Main content ── */
     .main { margin-left: var(--sb-w); min-height: 100vh; }
 
     .topbar {
@@ -55,6 +94,7 @@
       border-bottom: 1px solid #dee2e6;
       position: sticky; top: 0; z-index: 100;
       display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: .5rem;
     }
     .topbar .page-title { font-size: 1rem; font-weight: 600; margin: 0; color: #1b3a5c; }
     .topbar .page-sub   { font-size: .78rem; color: #6c757d; margin: 0; }
@@ -65,10 +105,14 @@
     .card { border: 1px solid #dde3ec; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.045); }
     .card-header { background: #fff; border-bottom: 1px solid #dde3ec; font-weight: 600; border-radius: 10px 10px 0 0 !important; }
 
+    /* Table scroll on mobile */
+    .card-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
     .stat-card { background: #fff; border-radius: 10px; padding: 1.3rem 1.4rem; border: 1px solid #dde3ec; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
-    .stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; }
+    .stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; flex-shrink: 0; }
 
     /* ── Table ── */
+    .table { min-width: 500px; } /* force horizontal scroll on narrow screens */
     .table thead th {
       background: #f7f9fc; font-size: .75rem; text-transform: uppercase;
       letter-spacing: .05em; color: #6c757d; border-top: none; white-space: nowrap;
@@ -95,21 +139,101 @@
     .btn-primary:hover { background: var(--sb-hover); border-color: var(--sb-hover); }
     .btn-outline-primary { color: var(--sb-bg); border-color: var(--sb-bg); }
     .btn-outline-primary:hover { background: var(--sb-bg); border-color: var(--sb-bg); }
+    .btn { min-height: 38px; }
 
     /* ── Form ── */
+    .form-control, .form-select {
+      /* iOS zoom fix: font-size min 16px */
+      font-size: 16px;
+    }
     .form-control:focus, .form-select:focus {
       border-color: var(--sb-bg);
       box-shadow: 0 0 0 .2rem rgba(27,58,92,.18);
     }
+    .form-label { font-size: .875rem; }
 
     /* ── Delete confirm ── */
     .delete-confirm { cursor: pointer; }
+
+    /* ══════════════════════════════════════════
+       MOBILE  (max 767px)
+    ══════════════════════════════════════════ */
+    @media (max-width: 767.98px) {
+
+      /* Göster: hamburger topbar */
+      .mobile-topbar { display: flex; }
+
+      /* Sidebar: ekran dışına taşı, açılınca geri getir */
+      .sidebar {
+        transform: translateX(-100%);
+        top: 0;
+        padding-top: env(safe-area-inset-top);
+      }
+      .sidebar.open { transform: translateX(0); }
+
+      /* Ana içerik tam genişlik + topbar kadar boşluk */
+      .main {
+        margin-left: 0;
+        padding-top: var(--mob-topbar-h);
+      }
+
+      /* Sabit topbar biraz aşağıda */
+      .topbar { top: var(--mob-topbar-h); padding: .7rem 1rem; }
+
+      /* İçerik padding azalt */
+      .content { padding: .875rem; }
+
+      /* Stat kartları: 2 kolon */
+      .stat-card { padding: 1rem; }
+      .stat-card > div:last-child .text-muted { font-size: .78rem; }
+
+      /* Kart header padding */
+      .card-header { padding: .7rem 1rem; font-size: .9rem; }
+
+      /* Buton grubu sarmasın */
+      .topbar > div:last-child { display: flex; gap: .4rem; flex-wrap: wrap; }
+
+      /* İlan kartları tam genişlik */
+      .col-sm-6 { flex: 0 0 100%; max-width: 100%; }
+
+      /* Form label küçük */
+      .form-label { margin-bottom: .25rem; }
+
+      /* Büyük card body padding */
+      .card-body.p-4 { padding: 1rem !important; }
+      .card-body.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+      .card-body.py-3 { padding-top: .75rem !important; padding-bottom: .75rem !important; }
+
+      /* Tab nav */
+      .nav-tabs .nav-link { padding: .5rem .75rem; font-size: .85rem; }
+
+      /* List group */
+      .list-group-item.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+    }
+
+    @media (max-width: 400px) {
+      .stat-card .stat-icon { width: 40px; height: 40px; font-size: 1.1rem; }
+    }
   </style>
 </head>
 <body>
 
+<!-- ── Mobil üst bar ── -->
+<div class="mobile-topbar">
+  <button class="hamburger-btn" onclick="sidebarToggle()" aria-label="Menü">
+    <i class="bi bi-list"></i>
+  </button>
+  <span class="mob-brand"><i class="bi bi-building me-1"></i>Emlak Pro</span>
+  <a href="{{ url_for('randevu_ekle') }}" class="hamburger-btn" title="Randevu Ekle">
+    <i class="bi bi-calendar-plus"></i>
+  </a>
+</div>
+
+<!-- ── Sidebar overlay (mobile tap to close) ── -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="sidebarToggle()"></div>
+
 <!-- ── Sidebar ── -->
-<nav class="sidebar">
+<nav class="sidebar" id="sidebar">
   <div class="sb-brand">
     <p class="name"><i class="bi bi-building me-2"></i>Emlak Pro</p>
     <p class="sub">Danışmanlık Sistemi</p>
@@ -118,7 +242,7 @@
   <div class="sb-section">Genel</div>
   <ul class="nav flex-column">
     <li class="nav-item">
-      <a href="{{ url_for('index') }}"
+      <a href="{{ url_for('index') }}" onclick="sidebarClose()"
          class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
         <i class="bi bi-speedometer2"></i> Özet Pano
       </a>
@@ -128,19 +252,19 @@
   <div class="sb-section">Yönetim</div>
   <ul class="nav flex-column">
     <li class="nav-item">
-      <a href="{{ url_for('musteriler') }}"
+      <a href="{{ url_for('musteriler') }}" onclick="sidebarClose()"
          class="nav-link {% if request.endpoint and 'musteri' in request.endpoint and 'ilan' not in request.endpoint %}active{% endif %}">
         <i class="bi bi-people-fill"></i> Müşteriler
       </a>
     </li>
     <li class="nav-item">
-      <a href="{{ url_for('ilanlar') }}"
+      <a href="{{ url_for('ilanlar') }}" onclick="sidebarClose()"
          class="nav-link {% if request.endpoint and 'ilan' in request.endpoint and 'musteri' not in request.endpoint %}active{% endif %}">
         <i class="bi bi-house-fill"></i> İlanlar
       </a>
     </li>
     <li class="nav-item">
-      <a href="{{ url_for('randevular') }}"
+      <a href="{{ url_for('randevular') }}" onclick="sidebarClose()"
          class="nav-link {% if request.endpoint and 'randevu' in request.endpoint %}active{% endif %}">
         <i class="bi bi-calendar3"></i> Randevular
       </a>
@@ -154,7 +278,7 @@
   </div>
 </nav>
 
-<!-- ── Main ── -->
+<!-- ── Ana içerik ── -->
 <div class="main">
   <div class="topbar">
     <div>
@@ -182,7 +306,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  /* Silme onay formu */
+  /* Silme onay */
   document.querySelectorAll('.delete-confirm').forEach(btn => {
     btn.addEventListener('click', function () {
       if (confirm(this.dataset.confirm || 'Silmek istediğinizden emin misiniz?')) {
@@ -190,6 +314,22 @@
       }
     });
   });
+
+  /* Sidebar aç/kapa */
+  function sidebarToggle() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('open');
+    document.body.style.overflow =
+      document.getElementById('sidebar').classList.contains('open') ? 'hidden' : '';
+  }
+  function sidebarClose() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  /* ESC ile kapat */
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') sidebarClose(); });
 </script>
 {% block scripts %}{% endblock %}
 </body>
