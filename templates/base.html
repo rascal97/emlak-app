@@ -18,47 +18,46 @@
       --tr:      0.25s ease;
     }
 
-    * { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; }
+
     body {
+      margin: 0;
       background: #f1f4f8;
       font-family: 'Segoe UI', system-ui, sans-serif;
       padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* ══════════════════════════════
-       PAYLAŞILAN NAV STİLLERİ
-       (desktop sidebar + mobile offcanvas)
-    ══════════════════════════════ */
+    /* ── Paylaşılan nav link stili ── */
     .sb-nav .nav-link {
       color: rgba(255,255,255,.65);
       padding: .72rem 1.1rem;
       display: flex; align-items: center; gap: .65rem;
       border-left: 3px solid transparent;
-      min-height: 46px;
-      white-space: nowrap; overflow: hidden;
+      min-height: 48px; white-space: nowrap; overflow: hidden;
       transition: background .15s, color .15s;
+      text-decoration: none;
     }
     .sb-nav .nav-link:hover  { color: #fff; background: var(--sb-hov); }
     .sb-nav .nav-link.active { color: #fff; background: var(--sb-act); border-left-color: var(--accent); }
     .sb-nav .nav-link .bi    { font-size: 1.05rem; flex-shrink: 0; width: 20px; text-align: center; }
-
     .sb-sec {
-      padding: .8rem 1.1rem .15rem;
+      padding: .8rem 1.1rem .2rem;
       color: rgba(255,255,255,.3);
       font-size: .64rem; text-transform: uppercase; letter-spacing: .1em;
     }
 
     /* ══════════════════════════════
-       DESKTOP SIDEBAR
+       MASAÜSTÜ SIDEBAR
     ══════════════════════════════ */
     .sidebar {
       position: fixed; top: 0; left: 0;
       width: var(--sb-w); height: 100vh;
       background: var(--sb-bg);
       z-index: 200;
-      display: flex; flex-direction: column;
+      flex-direction: column;
       overflow: hidden;
       transition: width var(--tr);
+      display: flex;           /* mobilde none yapılacak */
     }
     .sb-brand {
       display: flex; align-items: center; gap: .7rem;
@@ -66,89 +65,84 @@
       border-bottom: 1px solid rgba(255,255,255,.1);
       flex-shrink: 0; overflow: hidden;
     }
-    .sb-logo  { font-size: 1.2rem; color: #fff; flex-shrink: 0; }
-    .sb-name  { color: #fff; font-size: .97rem; font-weight: 700; margin: 0; white-space: nowrap; }
-    .sb-sub   { color: rgba(255,255,255,.4); font-size: .68rem; white-space: nowrap; }
-    .sb-foot  { padding: .75rem 1.1rem; overflow: hidden; white-space: nowrap; margin-top: auto; }
+    .sb-logo { font-size: 1.2rem; color: #fff; flex-shrink: 0; }
+    .sb-name { color: #fff; font-size: .97rem; font-weight: 700; margin: 0; white-space: nowrap; }
+    .sb-sub  { color: rgba(255,255,255,.4); font-size: .68rem; white-space: nowrap; margin: 0; }
+    .sb-foot { padding: .75rem 1.1rem; overflow: hidden; white-space: nowrap; margin-top: auto; }
 
-    /* Daraltılmış (mini) mod */
+    /* Mini (daraltılmış) mod */
     .sidebar.mini { width: var(--sb-mini); }
     .sidebar.mini .sb-titles,
     .sidebar.mini .sb-sec,
     .sidebar.mini .nav-text,
-    .sidebar.mini .sb-foot    { display: none; }
-    .sidebar.mini .sb-brand   { justify-content: center; padding: 1.1rem 0; }
-    .sidebar.mini .sb-logo    { font-size: 1.3rem; }
+    .sidebar.mini .sb-foot  { display: none; }
+    .sidebar.mini .sb-brand { justify-content: center; padding: 1.1rem 0; }
+    .sidebar.mini .sb-logo  { font-size: 1.3rem; }
     .sidebar.mini .sb-nav .nav-link {
-      justify-content: center; padding: .75rem 0;
-      gap: 0; border-left: none;
+      justify-content: center; padding: .75rem 0; gap: 0; border-left: none;
     }
     .sidebar.mini .sb-nav .nav-link.active {
-      background: var(--sb-act);
-      border-right: 3px solid var(--accent);
+      background: var(--sb-act); border-right: 3px solid var(--accent);
     }
     .sidebar.mini .sb-nav .nav-link .bi { width: auto; font-size: 1.2rem; }
 
-    /* Çekme kolu (toggle tab) */
+    /* Çekme kolu */
     .sb-tab {
-      position: fixed;
-      top: 50%; left: var(--sb-w);
+      position: fixed; top: 50%; left: var(--sb-w);
       transform: translateY(-50%);
       width: 18px; height: 56px;
-      background: var(--sb-bg);
-      border-radius: 0 8px 8px 0;
+      background: var(--sb-bg); border-radius: 0 8px 8px 0;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; color: rgba(255,255,255,.7); font-size: .75rem;
-      z-index: 201;
+      z-index: 201; box-shadow: 3px 0 8px rgba(0,0,0,.2);
       transition: left var(--tr), background var(--tr);
-      box-shadow: 3px 0 8px rgba(0,0,0,.2);
       user-select: none;
     }
-    .sb-tab:hover        { background: var(--sb-hov); color: #fff; }
-    .sb-tab.mini         { left: var(--sb-mini); }
+    .sb-tab:hover  { background: var(--sb-hov); color: #fff; }
+    .sb-tab.mini   { left: var(--sb-mini); }
 
     /* ══════════════════════════════
-       MOBİL ÜST BAR
+       MOBİL ÜST BAR  (default: gizli)
     ══════════════════════════════ */
     .mob-bar {
+      display: none;                         /* masaüstünde gizli */
       position: fixed; top: 0; left: 0; right: 0;
       height: var(--mob-h);
-      background: var(--sb-bg);
-      z-index: 300;
-      display: flex; align-items: center; justify-content: space-between;
+      background: var(--sb-bg); z-index: 300;
+      align-items: center; justify-content: space-between;
       padding: 0 1rem;
       padding-top: env(safe-area-inset-top);
-      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
     }
     .mob-brand { color: #fff; font-weight: 700; font-size: 1rem; }
     .mob-btn {
       background: none; border: none; color: #fff; font-size: 1.5rem;
-      padding: .4rem .5rem; cursor: pointer; border-radius: 6px;
-      display: flex; align-items: center;
-      min-width: 44px; min-height: 44px; justify-content: center;
+      padding: 0; cursor: pointer; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      width: 44px; height: 44px;
     }
     .mob-btn:active { background: rgba(255,255,255,.15); }
 
     /* ══════════════════════════════
-       BOOTSTRAP OFFCANVAS — renk özelleştirme
+       BOOTSTRAP OFFCANVASí renk override
     ══════════════════════════════ */
-    #mobileOffcanvas {
+    #mobileMenu {
       background: var(--sb-bg) !important;
       width: var(--sb-w) !important;
       border-right: none;
     }
-    #mobileOffcanvas .offcanvas-header {
-      border-bottom: 1px solid rgba(255,255,255,.1);
+    #mobileMenu .offcanvas-header {
+      border-bottom: 1px solid rgba(255,255,255,.12);
       padding: 1rem 1.1rem;
     }
-    #mobileOffcanvas .offcanvas-title {
-      color: #fff; font-size: .97rem; font-weight: 700;
+    #mobileMenu .offcanvas-title {
+      color: #fff; font-weight: 700; font-size: .97rem;
     }
-    #mobileOffcanvas .btn-close {
+    #mobileMenu .btn-close {
       filter: invert(1) grayscale(100%) brightness(200%);
-      opacity: .65;
+      opacity: .6;
     }
-    #mobileOffcanvas .offcanvas-body { padding: 0; }
+    #mobileMenu .offcanvas-body { padding: 0; overflow-y: auto; }
 
     /* ══════════════════════════════
        ANA İÇERİK
@@ -172,7 +166,7 @@
     .content { padding: 1.5rem; }
 
     /* ══════════════════════════════
-       KARTLAR
+       KARTLAR / TABLOLAR
     ══════════════════════════════ */
     .card { border: 1px solid #dde3ec; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.045); }
     .card-header { background: #fff; border-bottom: 1px solid #dde3ec; font-weight: 600; border-radius: 10px 10px 0 0 !important; }
@@ -183,22 +177,18 @@
     .table thead th { background: #f7f9fc; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; border-top: none; white-space: nowrap; }
     .table tbody tr:hover { background: #f7f9fc; }
 
-    /* ══════════════════════════════
-       BADGES
-    ══════════════════════════════ */
+    /* BADGES */
     .bd { display: inline-block; padding: .25em .55em; border-radius: 5px; font-size: .75rem; font-weight: 600; }
-    .bd-satilik    { background:#dbeafe;color:#1d4ed8; } .bd-kiralik    { background:#ede9fe;color:#6d28d9; }
-    .bd-aktif      { background:#dcfce7;color:#166534; } .bd-satildi    { background:#ffedd5;color:#9a3412; }
-    .bd-kiralandı  { background:#fce7f3;color:#9d174d; } .bd-pasif      { background:#e5e7eb;color:#374151; }
-    .bd-planlandı  { background:#dbeafe;color:#1d4ed8; } .bd-tamamlandı { background:#dcfce7;color:#166534; }
-    .bd-iptal      { background:#fee2e2;color:#991b1b; }
-    .bd-ilgileniyor     { background:#dbeafe;color:#1d4ed8; }
-    .bd-cok_ilgileniyor { background:#dcfce7;color:#166534; }
-    .bd-degil           { background:#fee2e2;color:#991b1b; }
+    .bd-satilik{background:#dbeafe;color:#1d4ed8;} .bd-kiralik{background:#ede9fe;color:#6d28d9;}
+    .bd-aktif{background:#dcfce7;color:#166534;}   .bd-satildi{background:#ffedd5;color:#9a3412;}
+    .bd-kiralandı{background:#fce7f3;color:#9d174d;} .bd-pasif{background:#e5e7eb;color:#374151;}
+    .bd-planlandı{background:#dbeafe;color:#1d4ed8;} .bd-tamamlandı{background:#dcfce7;color:#166534;}
+    .bd-iptal{background:#fee2e2;color:#991b1b;}
+    .bd-ilgileniyor{background:#dbeafe;color:#1d4ed8;}
+    .bd-cok_ilgileniyor{background:#dcfce7;color:#166534;}
+    .bd-degil{background:#fee2e2;color:#991b1b;}
 
-    /* ══════════════════════════════
-       BUTONLAR / FORM
-    ══════════════════════════════ */
+    /* BUTONLAR / FORM */
     .btn { min-height: 38px; }
     .btn-primary { background: var(--sb-bg); border-color: var(--sb-bg); }
     .btn-primary:hover { background: var(--sb-hov); border-color: var(--sb-hov); }
@@ -212,20 +202,27 @@
        MOBİL  ≤ 767px
     ══════════════════════════════ */
     @media (max-width: 767.98px) {
-      .sidebar, .sb-tab  { display: none !important; }   /* desktop öğeleri gizle */
-      .main { margin-left: 0; padding-top: var(--mob-h); }
+      /* Mobil topbar'ı göster */
+      .mob-bar { display: flex; }
+
+      /* Masaüstü sidebar ve tab'ı gizle */
+      .sidebar { display: none !important; }
+      .sb-tab  { display: none !important; }
+
+      /* İçerik üst bar kadar aşağı */
+      .main   { margin-left: 0 !important; padding-top: var(--mob-h); }
       .topbar { top: var(--mob-h); padding: .7rem 1rem; }
       .content { padding: .875rem; }
+
+      /* Stat kartları 2'li */
       .col-6.col-xl-3 { flex: 0 0 50%; max-width: 50%; }
+
+      /* Padding düzeltmeleri */
       .card-header.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
       .card-body.p-4    { padding: 1rem !important; }
       .card-body.px-4   { padding-left: 1rem !important; padding-right: 1rem !important; }
       .nav-tabs .nav-link { padding: .5rem .65rem; font-size: .83rem; }
       .list-group-item.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
-    }
-
-    @media (min-width: 768px) {
-      .mob-bar { display: none !important; }   /* mobil topbar masaüstünde gizli */
     }
 
     @media (max-width: 400px) {
@@ -236,43 +233,45 @@
 </head>
 <body>
 
-<!-- ══════════════════════════════
+<!-- ══════════════════════
      MOBİL ÜST BAR
-══════════════════════════════ -->
-<div class="mob-bar d-md-none">
+══════════════════════ -->
+<div class="mob-bar">
   <button class="mob-btn"
           type="button"
           data-bs-toggle="offcanvas"
-          data-bs-target="#mobileOffcanvas"
-          aria-controls="mobileOffcanvas"
-          aria-label="Menüyü aç">
+          data-bs-target="#mobileMenu"
+          aria-controls="mobileMenu">
     <i class="bi bi-list"></i>
   </button>
   <span class="mob-brand"><i class="bi bi-building me-1"></i>Emlak Pro</span>
-  <a href="{{ url_for('randevu_ekle') }}" class="mob-btn" title="Yeni Randevu">
+  <a href="{{ url_for('randevu_ekle') }}" class="mob-btn">
     <i class="bi bi-calendar-plus"></i>
   </a>
 </div>
 
-<!-- ══════════════════════════════
-     MOBİL OFFCANVASí (Bootstrap 5)
-══════════════════════════════ -->
-<div class="offcanvas offcanvas-start d-md-none"
+<!-- ══════════════════════
+     MOBİL OFFCANVAS (Bootstrap 5)
+══════════════════════ -->
+<div class="offcanvas offcanvas-start"
      tabindex="-1"
-     id="mobileOffcanvas"
-     aria-labelledby="mobileOffcanvasLabel">
+     id="mobileMenu"
+     aria-labelledby="mobileMenuLabel">
 
   <div class="offcanvas-header">
-    <span class="offcanvas-title" id="mobileOffcanvasLabel">
+    <span class="offcanvas-title" id="mobileMenuLabel">
       <i class="bi bi-building me-2"></i>Emlak Pro
     </span>
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Kapat"></button>
+    <button type="button"
+            class="btn-close"
+            data-bs-dismiss="offcanvas"
+            aria-label="Kapat"></button>
   </div>
 
   <div class="offcanvas-body">
     <div class="sb-sec">Genel</div>
     <ul class="nav flex-column sb-nav">
-      <li class="nav-item">
+      <li>
         <a href="{{ url_for('index') }}"
            data-bs-dismiss="offcanvas"
            class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
@@ -284,7 +283,7 @@
 
     <div class="sb-sec">Yönetim</div>
     <ul class="nav flex-column sb-nav">
-      <li class="nav-item">
+      <li>
         <a href="{{ url_for('musteriler') }}"
            data-bs-dismiss="offcanvas"
            class="nav-link {% if request.endpoint and 'musteri' in request.endpoint and 'ilan' not in request.endpoint %}active{% endif %}">
@@ -292,7 +291,7 @@
           <span class="nav-text">Müşteriler</span>
         </a>
       </li>
-      <li class="nav-item">
+      <li>
         <a href="{{ url_for('ilanlar') }}"
            data-bs-dismiss="offcanvas"
            class="nav-link {% if request.endpoint and 'ilan' in request.endpoint and 'musteri' not in request.endpoint %}active{% endif %}">
@@ -300,7 +299,7 @@
           <span class="nav-text">İlanlar</span>
         </a>
       </li>
-      <li class="nav-item">
+      <li>
         <a href="{{ url_for('randevular') }}"
            data-bs-dismiss="offcanvas"
            class="nav-link {% if request.endpoint and 'randevu' in request.endpoint %}active{% endif %}">
@@ -312,10 +311,10 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════
-     DESKTOP SIDEBAR  (d-none d-md-flex)
-══════════════════════════════ -->
-<nav class="sidebar d-none d-md-flex flex-column" id="sidebar">
+<!-- ══════════════════════
+     MASAÜSTÜ SIDEBAR
+══════════════════════ -->
+<nav class="sidebar" id="sidebar">
   <div class="sb-brand">
     <i class="bi bi-building sb-logo"></i>
     <div class="sb-titles">
@@ -326,7 +325,7 @@
 
   <div class="sb-sec">Genel</div>
   <ul class="nav flex-column sb-nav">
-    <li class="nav-item">
+    <li>
       <a href="{{ url_for('index') }}" title="Özet Pano"
          class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
         <i class="bi bi-speedometer2"></i>
@@ -337,21 +336,21 @@
 
   <div class="sb-sec">Yönetim</div>
   <ul class="nav flex-column sb-nav">
-    <li class="nav-item">
+    <li>
       <a href="{{ url_for('musteriler') }}" title="Müşteriler"
          class="nav-link {% if request.endpoint and 'musteri' in request.endpoint and 'ilan' not in request.endpoint %}active{% endif %}">
         <i class="bi bi-people-fill"></i>
         <span class="nav-text">Müşteriler</span>
       </a>
     </li>
-    <li class="nav-item">
+    <li>
       <a href="{{ url_for('ilanlar') }}" title="İlanlar"
          class="nav-link {% if request.endpoint and 'ilan' in request.endpoint and 'musteri' not in request.endpoint %}active{% endif %}">
         <i class="bi bi-house-fill"></i>
         <span class="nav-text">İlanlar</span>
       </a>
     </li>
-    <li class="nav-item">
+    <li>
       <a href="{{ url_for('randevular') }}" title="Randevular"
          class="nav-link {% if request.endpoint and 'randevu' in request.endpoint %}active{% endif %}">
         <i class="bi bi-calendar3"></i>
@@ -367,14 +366,14 @@
   </div>
 </nav>
 
-<!-- Desktop çekme kolu -->
-<div class="sb-tab d-none d-md-flex" id="sbTab" onclick="deskToggle()" title="Menüyü daralt / genişlet">
+<!-- Masaüstü çekme kolu -->
+<div class="sb-tab" id="sbTab" onclick="deskToggle()" title="Daralt / Genişlet">
   <i class="bi bi-chevron-left" id="tabIcon"></i>
 </div>
 
-<!-- ══════════════════════════════
+<!-- ══════════════════════
      ANA İÇERİK
-══════════════════════════════ -->
+══════════════════════ -->
 <div class="main" id="mainEl">
   <div class="topbar">
     <div>
@@ -398,29 +397,26 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  const sb      = document.getElementById('sidebar');
+  const sidebar = document.getElementById('sidebar');
   const mainEl  = document.getElementById('mainEl');
-  const tab     = document.getElementById('sbTab');
+  const sbTab   = document.getElementById('sbTab');
   const tabIcon = document.getElementById('tabIcon');
 
-  /* Desktop: çekme kolu ile daralt / genişlet */
   function deskToggle() {
-    const mini = sb.classList.toggle('mini');
+    const mini = sidebar.classList.toggle('mini');
     mainEl.classList.toggle('mini', mini);
-    tab.classList.toggle('mini', mini);
+    sbTab.classList.toggle('mini', mini);
     tabIcon.className = mini ? 'bi bi-chevron-right' : 'bi bi-chevron-left';
     localStorage.setItem('sbMini', mini ? '1' : '0');
   }
 
-  /* Sayfa açılışında kayıtlı durumu uygula */
   if (window.innerWidth >= 768 && localStorage.getItem('sbMini') === '1') {
-    sb.classList.add('mini');
+    sidebar.classList.add('mini');
     mainEl.classList.add('mini');
-    tab.classList.add('mini');
+    sbTab.classList.add('mini');
     tabIcon.className = 'bi bi-chevron-right';
   }
 
-  /* Silme onay */
   document.querySelectorAll('.delete-confirm').forEach(btn => {
     btn.addEventListener('click', function () {
       if (confirm(this.dataset.confirm || 'Silmek istediğinizden emin misiniz?'))
