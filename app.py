@@ -108,6 +108,20 @@ except Exception as _e:
     print(f'[WARNING] init_db: {_e}', flush=True)
 
 
+# ── PWA ────────────────────────────────────────────────────────────────────
+
+@app.route('/sw.js')
+def service_worker():
+    resp = app.send_static_file('sw.js')
+    resp.headers['Content-Type'] = 'application/javascript'
+    resp.headers['Service-Worker-Allowed'] = '/'
+    return resp
+
+@app.route('/offline')
+def offline():
+    return render_template('offline.html')
+
+
 # ── Dashboard ──────────────────────────────────────────────────────────────
 
 @app.route('/')

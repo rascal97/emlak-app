@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Çevrimdışı — Emlak Pro</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #1b3a5c; color: white;
+      font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 100vh; padding: 24px; text-align: center;
+    }
+    .icon {
+      width: 80px; height: 80px; border-radius: 20px;
+      background: rgba(255,255,255,.12);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.5rem; margin-bottom: 24px;
+    }
+    h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 10px; }
+    p  { font-size: .95rem; color: rgba(255,255,255,.7); line-height: 1.5; margin-bottom: 28px; }
+    button {
+      background: white; color: #1b3a5c;
+      border: none; border-radius: 12px;
+      padding: 14px 32px; font-size: 1rem; font-weight: 600;
+      cursor: pointer; min-height: 48px;
+    }
+    button:active { opacity: .85; }
+  </style>
+</head>
+<body>
+  <div class="icon">🏢</div>
+  <h1>İnternet Bağlantısı Yok</h1>
+  <p>Emlak Pro'ya erişmek için internet bağlantısı gerekli.<br>Bağlantınızı kontrol edip tekrar deneyin.</p>
+  <button onclick="location.reload()">Tekrar Dene</button>
+</body>
+</html>
