@@ -8,14 +8,14 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <style>
     :root {
-      --sb-w: 255px;
-      --sb-w-mini: 64px;
-      --sb-bg: #1b3a5c;
-      --sb-hover: #254e7d;
-      --sb-active: #2d5f99;
-      --accent: #e67e22;
-      --mob-h: 56px;
-      --trans: 0.22s ease;
+      --sb-w:    255px;
+      --sb-mini: 62px;
+      --sb-bg:   #1b3a5c;
+      --sb-hov:  #254e7d;
+      --sb-act:  #2d5f99;
+      --accent:  #e67e22;
+      --mob-h:   56px;
+      --tr:      0.25s ease;
     }
 
     * { box-sizing: border-box; }
@@ -25,9 +25,9 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* ══════════════════════════════
+    /* ══════════════════
        SIDEBAR
-    ══════════════════════════════ */
+    ══════════════════ */
     .sidebar {
       position: fixed; top: 0; left: 0;
       width: var(--sb-w); height: 100vh;
@@ -35,91 +35,95 @@
       z-index: 200;
       display: flex; flex-direction: column;
       overflow: hidden;
-      transition: width var(--trans);
+      transition: width var(--tr);
     }
 
-    /* Brand alanı */
+    /* Başlık */
     .sb-brand {
-      padding: 1.2rem 1.1rem 1rem;
+      display: flex; align-items: center; gap: .7rem;
+      padding: 1.3rem 1.1rem;
       border-bottom: 1px solid rgba(255,255,255,.1);
-      display: flex; align-items: center; justify-content: space-between;
-      flex-shrink: 0; min-height: 72px;
-      overflow: hidden;
+      flex-shrink: 0; overflow: hidden;
     }
-    .sb-brand-info .name { color: #fff; font-size: 1rem; font-weight: 700; margin: 0; white-space: nowrap; }
-    .sb-brand-info .sub  { color: rgba(255,255,255,.4); font-size: .7rem; white-space: nowrap; }
+    .sb-logo { font-size: 1.2rem; color: #fff; flex-shrink: 0; }
+    .sb-titles .name { color: #fff; font-size: .97rem; font-weight: 700; margin: 0; white-space: nowrap; }
+    .sb-titles .sub  { color: rgba(255,255,255,.4); font-size: .68rem; white-space: nowrap; }
 
-    /* Sidebar daralt/genişlet butonu */
-    .sb-collapse-btn {
-      flex-shrink: 0;
-      background: rgba(255,255,255,.1);
-      border: none; border-radius: 6px;
-      color: rgba(255,255,255,.7);
-      width: 30px; height: 30px;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: .85rem;
-      transition: all .15s;
-    }
-    .sb-collapse-btn:hover { background: rgba(255,255,255,.2); color: #fff; }
-
-    /* Bölüm başlıkları */
-    .sb-section {
-      padding: .85rem 1.1rem .2rem;
+    /* Bölüm etiketleri */
+    .sb-sec {
+      padding: .8rem 1.1rem .15rem;
       color: rgba(255,255,255,.3);
-      font-size: .65rem; text-transform: uppercase; letter-spacing: .1em;
+      font-size: .64rem; text-transform: uppercase; letter-spacing: .1em;
       white-space: nowrap; overflow: hidden;
-      transition: opacity var(--trans), padding var(--trans);
     }
 
     /* Nav linkleri */
     .sidebar .nav-link {
       color: rgba(255,255,255,.65);
       padding: .7rem 1.1rem;
-      display: flex; align-items: center; gap: .7rem;
+      display: flex; align-items: center; gap: .65rem;
       border-left: 3px solid transparent;
-      transition: all .15s;
       min-height: 46px;
-      white-space: nowrap;
-      overflow: hidden;
+      white-space: nowrap; overflow: hidden;
+      transition: background .15s, color .15s;
     }
-    .sidebar .nav-link:hover  { color: #fff; background: var(--sb-hover); }
-    .sidebar .nav-link.active { color: #fff; background: var(--sb-active); border-left-color: var(--accent); }
-    .sidebar .nav-link .bi   { font-size: 1rem; flex-shrink: 0; width: 20px; text-align: center; }
-    .sidebar .nav-link .nav-text { transition: opacity var(--trans); }
+    .sidebar .nav-link:hover  { color: #fff; background: var(--sb-hov); }
+    .sidebar .nav-link.active { color: #fff; background: var(--sb-act); border-left-color: var(--accent); }
+    .sidebar .nav-link .bi   { font-size: 1.05rem; flex-shrink: 0; width: 20px; text-align: center; }
 
-    /* Alt bilgi */
-    .sb-footer { padding: .75rem 1.1rem; overflow: hidden; white-space: nowrap; }
+    /* Alt alan */
+    .sb-foot { padding: .75rem 1.1rem; overflow: hidden; white-space: nowrap; margin-top: auto; }
 
-    /* ── Daraltılmış hâl ── */
-    .sidebar.mini {
-      width: var(--sb-w-mini);
-    }
-    .sidebar.mini .sb-brand-info,
-    .sidebar.mini .sb-section,
+    /* ─── Daraltılmış mod ─── */
+    .sidebar.mini { width: var(--sb-mini); }
+
+    .sidebar.mini .sb-titles,
+    .sidebar.mini .sb-sec,
     .sidebar.mini .nav-text,
-    .sidebar.mini .sb-footer { opacity: 0; width: 0; padding: 0; margin: 0; overflow: hidden; }
-    .sidebar.mini .sb-brand { justify-content: center; padding: 1rem .5rem; }
-    .sidebar.mini .sb-section { height: 0; }
-    .sidebar.mini .nav-link { justify-content: center; padding: .7rem 0; gap: 0; border-left-color: transparent !important; }
-    .sidebar.mini .nav-link.active { border-left: none; border-right: 3px solid var(--accent); }
-    .sidebar.mini .nav-link .bi { width: auto; font-size: 1.15rem; }
-    .sidebar.mini .sb-collapse-btn { margin: 0 auto; }
+    .sidebar.mini .sb-foot { display: none; }
 
-    /* ══════════════════════════════
-       OVERLAY  (mobile)
-    ══════════════════════════════ */
-    .sidebar-overlay {
+    .sidebar.mini .sb-brand  { justify-content: center; padding: 1.1rem 0; }
+    .sidebar.mini .sb-logo   { font-size: 1.3rem; }
+    .sidebar.mini .nav-link  { justify-content: center; padding: .75rem 0; gap: 0; border-left: none; }
+    .sidebar.mini .nav-link.active { background: var(--sb-act); border-right: 3px solid var(--accent); }
+    .sidebar.mini .nav-link .bi { width: auto; font-size: 1.2rem; }
+
+    /* ── Çekme kolu (toggle tab) ──
+       Sidebar'ın sağ kenarından çıkıyor, tıklayınca açar/kapar */
+    .sb-tab {
+      position: fixed;
+      top: 50%; left: var(--sb-w);
+      transform: translateY(-50%);
+      width: 18px; height: 56px;
+      background: var(--sb-bg);
+      border-radius: 0 8px 8px 0;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      color: rgba(255,255,255,.7);
+      font-size: .75rem;
+      z-index: 201;
+      transition: left var(--tr), background var(--tr);
+      box-shadow: 3px 0 8px rgba(0,0,0,.2);
+      user-select: none;
+    }
+    .sb-tab:hover { background: var(--sb-hov); color: #fff; }
+    .sb-tab.mini  { left: var(--sb-mini); }
+
+    /* ══════════════════
+       MOBİL OVERLAY
+    ══════════════════ */
+    .sb-overlay {
       display: none;
       position: fixed; inset: 0;
       background: rgba(0,0,0,.55);
       z-index: 190;
     }
-    .sidebar-overlay.open { display: block; }
+    .sb-overlay.open { display: block; }
 
-    /* ══════════════════════════════
+    /* ══════════════════
        MOBİL ÜST BAR
-    ══════════════════════════════ */
-    .mobile-topbar {
+    ══════════════════ */
+    .mob-bar {
       display: none;
       position: fixed; top: 0; left: 0; right: 0;
       height: var(--mob-h);
@@ -132,23 +136,21 @@
     }
     .mob-brand { color: #fff; font-weight: 700; font-size: 1rem; }
     .mob-btn {
-      background: none; border: none;
-      color: #fff; font-size: 1.5rem;
-      padding: .4rem .5rem; cursor: pointer;
-      display: flex; align-items: center;
-      border-radius: 6px; min-width: 44px; min-height: 44px; justify-content: center;
+      background: none; border: none; color: #fff; font-size: 1.5rem;
+      padding: .4rem .5rem; cursor: pointer; border-radius: 6px;
+      display: flex; align-items: center; min-width: 44px; min-height: 44px; justify-content: center;
     }
     .mob-btn:active { background: rgba(255,255,255,.15); }
 
-    /* ══════════════════════════════
+    /* ══════════════════
        ANA İÇERİK
-    ══════════════════════════════ */
+    ══════════════════ */
     .main {
       margin-left: var(--sb-w);
       min-height: 100vh;
-      transition: margin-left var(--trans);
+      transition: margin-left var(--tr);
     }
-    .main.mini { margin-left: var(--sb-w-mini); }
+    .main.mini { margin-left: var(--sb-mini); }
 
     .topbar {
       background: #fff; padding: .85rem 1.5rem;
@@ -159,12 +161,11 @@
     }
     .topbar .page-title { font-size: 1rem; font-weight: 600; margin: 0; color: #1b3a5c; }
     .topbar .page-sub   { font-size: .78rem; color: #6c757d; margin: 0; }
-
     .content { padding: 1.5rem; }
 
-    /* ══════════════════════════════
-       KARTLAR / TABLOLAR
-    ══════════════════════════════ */
+    /* ══════════════════
+       KARTLAR
+    ══════════════════ */
     .card { border: 1px solid #dde3ec; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.045); }
     .card-header { background: #fff; border-bottom: 1px solid #dde3ec; font-weight: 600; border-radius: 10px 10px 0 0 !important; }
     .card-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -173,82 +174,67 @@
     .stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; flex-shrink: 0; }
 
     .table { min-width: 480px; }
-    .table thead th {
-      background: #f7f9fc; font-size: .75rem; text-transform: uppercase;
-      letter-spacing: .05em; color: #6c757d; border-top: none; white-space: nowrap;
-    }
+    .table thead th { background: #f7f9fc; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; border-top: none; white-space: nowrap; }
     .table tbody tr:hover { background: #f7f9fc; }
 
-    /* ══════════════════════════════
+    /* ══════════════════
        BADGES
-    ══════════════════════════════ */
+    ══════════════════ */
     .bd { display: inline-block; padding: .25em .55em; border-radius: 5px; font-size: .75rem; font-weight: 600; }
-    .bd-satilik    { background: #dbeafe; color: #1d4ed8; }
-    .bd-kiralik    { background: #ede9fe; color: #6d28d9; }
-    .bd-aktif      { background: #dcfce7; color: #166534; }
-    .bd-satildi    { background: #ffedd5; color: #9a3412; }
-    .bd-kiralandı  { background: #fce7f3; color: #9d174d; }
-    .bd-pasif      { background: #e5e7eb; color: #374151; }
-    .bd-planlandı  { background: #dbeafe; color: #1d4ed8; }
-    .bd-tamamlandı { background: #dcfce7; color: #166534; }
-    .bd-iptal      { background: #fee2e2; color: #991b1b; }
-    .bd-ilgileniyor     { background: #dbeafe; color: #1d4ed8; }
-    .bd-cok_ilgileniyor { background: #dcfce7; color: #166534; }
-    .bd-degil           { background: #fee2e2; color: #991b1b; }
+    .bd-satilik    { background:#dbeafe;color:#1d4ed8; } .bd-kiralik    { background:#ede9fe;color:#6d28d9; }
+    .bd-aktif      { background:#dcfce7;color:#166534; } .bd-satildi    { background:#ffedd5;color:#9a3412; }
+    .bd-kiralandı  { background:#fce7f3;color:#9d174d; } .bd-pasif      { background:#e5e7eb;color:#374151; }
+    .bd-planlandı  { background:#dbeafe;color:#1d4ed8; } .bd-tamamlandı { background:#dcfce7;color:#166534; }
+    .bd-iptal      { background:#fee2e2;color:#991b1b; }
+    .bd-ilgileniyor     { background:#dbeafe;color:#1d4ed8; }
+    .bd-cok_ilgileniyor { background:#dcfce7;color:#166534; }
+    .bd-degil           { background:#fee2e2;color:#991b1b; }
 
-    /* ══════════════════════════════
+    /* ══════════════════
        BUTONLAR / FORM
-    ══════════════════════════════ */
+    ══════════════════ */
     .btn { min-height: 38px; }
     .btn-primary { background: var(--sb-bg); border-color: var(--sb-bg); }
-    .btn-primary:hover { background: var(--sb-hover); border-color: var(--sb-hover); }
+    .btn-primary:hover { background: var(--sb-hov); border-color: var(--sb-hov); }
     .btn-outline-primary { color: var(--sb-bg); border-color: var(--sb-bg); }
     .btn-outline-primary:hover { background: var(--sb-bg); border-color: var(--sb-bg); }
-
-    .form-control, .form-select { font-size: 16px; } /* iOS zoom engel */
-    .form-control:focus, .form-select:focus {
-      border-color: var(--sb-bg);
-      box-shadow: 0 0 0 .2rem rgba(27,58,92,.18);
-    }
-
+    .form-control, .form-select { font-size: 16px; }
+    .form-control:focus, .form-select:focus { border-color: var(--sb-bg); box-shadow: 0 0 0 .2rem rgba(27,58,92,.18); }
     .delete-confirm { cursor: pointer; }
 
-    /* ══════════════════════════════
-       MOBİL  (≤ 767px)
-    ══════════════════════════════ */
+    /* ══════════════════
+       MOBİL ≤ 767px
+    ══════════════════ */
     @media (max-width: 767.98px) {
-      .mobile-topbar { display: flex; }
-      .sb-collapse-btn { display: none; }   /* masaüstü butonu gizle */
+      .mob-bar  { display: flex; }
+      .sb-tab   { display: none; }        /* masaüstü toggle mobilde gizli */
 
-      /* Sidebar ekran dışında, overlay ile açılır */
       .sidebar {
         transform: translateX(-100%);
-        width: var(--sb-w) !important;      /* mini modunu ezip tam genişlik */
-        transition: transform var(--trans);
+        width: var(--sb-w) !important;
+        transition: transform var(--tr);
         padding-top: env(safe-area-inset-top);
       }
       .sidebar.open { transform: translateX(0); }
 
-      .sidebar .sb-brand-info,
-      .sidebar .sb-section,
-      .sidebar .nav-text,
-      .sidebar .sb-footer { opacity: 1 !important; width: auto !important; padding: revert; }
-      .sidebar .nav-link  { justify-content: flex-start !important; padding: .7rem 1.1rem !important; gap: .7rem !important; }
-      .sidebar .nav-link .bi { width: 20px !important; }
-      .sidebar.mini .nav-link.active { border-left: 3px solid var(--accent) !important; border-right: none !important; }
+      /* Mini modun mobil üzerindeki etkilerini sıfırla */
+      .sidebar.mini { width: var(--sb-w) !important; }
+      .sidebar.mini .sb-titles, .sidebar.mini .sb-sec,
+      .sidebar.mini .nav-text,  .sidebar.mini .sb-foot { display: revert; }
+      .sidebar.mini .sb-brand  { justify-content: flex-start; padding: 1.3rem 1.1rem; }
+      .sidebar.mini .nav-link  { justify-content: flex-start; padding: .7rem 1.1rem; gap: .65rem; border-left: 3px solid transparent; border-right: none; }
+      .sidebar.mini .nav-link.active { border-left-color: var(--accent); border-right: none; }
+      .sidebar.mini .nav-link .bi { width: 20px; font-size: 1.05rem; }
 
       .main, .main.mini { margin-left: 0; padding-top: var(--mob-h); }
       .topbar { top: var(--mob-h); padding: .7rem 1rem; }
       .content { padding: .875rem; }
 
       .col-6.col-xl-3 { flex: 0 0 50%; max-width: 50%; }
-
       .card-header.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
       .card-body.p-4   { padding: 1rem !important; }
       .card-body.px-4  { padding-left: 1rem !important; padding-right: 1rem !important; }
-
       .nav-tabs .nav-link { padding: .5rem .65rem; font-size: .83rem; }
-
       .list-group-item.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
     }
 
@@ -260,86 +246,64 @@
 </head>
 <body>
 
-<!-- ── Mobil üst bar ── -->
-<div class="mobile-topbar">
-  <button class="mob-btn" onclick="mobSidebarToggle()" aria-label="Menü">
-    <i class="bi bi-list"></i>
-  </button>
+<!-- Mobil üst bar -->
+<div class="mob-bar">
+  <button class="mob-btn" onclick="mobToggle()" aria-label="Menü"><i class="bi bi-list"></i></button>
   <span class="mob-brand"><i class="bi bi-building me-1"></i>Emlak Pro</span>
-  <a href="{{ url_for('randevu_ekle') }}" class="mob-btn" title="Randevu Ekle">
-    <i class="bi bi-calendar-plus"></i>
-  </a>
+  <a href="{{ url_for('randevu_ekle') }}" class="mob-btn"><i class="bi bi-calendar-plus"></i></a>
 </div>
 
-<!-- ── Overlay (mobile) ── -->
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="mobSidebarToggle()"></div>
+<!-- Overlay (mobile) -->
+<div class="sb-overlay" id="sbOverlay" onclick="mobToggle()"></div>
 
-<!-- ══════════════════════════════
-     SIDEBAR
-══════════════════════════════ -->
+<!-- ── SIDEBAR ── -->
 <nav class="sidebar" id="sidebar">
-
   <div class="sb-brand">
-    <div class="sb-brand-info">
-      <p class="name"><i class="bi bi-building me-2"></i>Emlak Pro</p>
+    <i class="bi bi-building sb-logo"></i>
+    <div class="sb-titles">
+      <p class="name">Emlak Pro</p>
       <p class="sub">Danışmanlık Sistemi</p>
     </div>
-    <button class="sb-collapse-btn" onclick="deskSidebarToggle()" id="collapseBtn" title="Menüyü daralt">
-      <i class="bi bi-chevron-left" id="collapseIcon"></i>
-    </button>
   </div>
 
-  <div class="sb-section">Genel</div>
+  <div class="sb-sec">Genel</div>
   <ul class="nav flex-column">
-    <li class="nav-item">
-      <a href="{{ url_for('index') }}" onclick="mobSidebarClose()"
-         title="Özet Pano"
-         class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
-        <i class="bi bi-speedometer2"></i>
-        <span class="nav-text">Özet Pano</span>
-      </a>
-    </li>
+    <li><a href="{{ url_for('index') }}" onclick="mobClose()" title="Özet Pano"
+           class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+      <i class="bi bi-speedometer2"></i><span class="nav-text"> Özet Pano</span>
+    </a></li>
   </ul>
 
-  <div class="sb-section">Yönetim</div>
+  <div class="sb-sec">Yönetim</div>
   <ul class="nav flex-column">
-    <li class="nav-item">
-      <a href="{{ url_for('musteriler') }}" onclick="mobSidebarClose()"
-         title="Müşteriler"
-         class="nav-link {% if request.endpoint and 'musteri' in request.endpoint and 'ilan' not in request.endpoint %}active{% endif %}">
-        <i class="bi bi-people-fill"></i>
-        <span class="nav-text">Müşteriler</span>
-      </a>
-    </li>
-    <li class="nav-item">
-      <a href="{{ url_for('ilanlar') }}" onclick="mobSidebarClose()"
-         title="İlanlar"
-         class="nav-link {% if request.endpoint and 'ilan' in request.endpoint and 'musteri' not in request.endpoint %}active{% endif %}">
-        <i class="bi bi-house-fill"></i>
-        <span class="nav-text">İlanlar</span>
-      </a>
-    </li>
-    <li class="nav-item">
-      <a href="{{ url_for('randevular') }}" onclick="mobSidebarClose()"
-         title="Randevular"
-         class="nav-link {% if request.endpoint and 'randevu' in request.endpoint %}active{% endif %}">
-        <i class="bi bi-calendar3"></i>
-        <span class="nav-text">Randevular</span>
-      </a>
-    </li>
+    <li><a href="{{ url_for('musteriler') }}" onclick="mobClose()" title="Müşteriler"
+           class="nav-link {% if request.endpoint and 'musteri' in request.endpoint and 'ilan' not in request.endpoint %}active{% endif %}">
+      <i class="bi bi-people-fill"></i><span class="nav-text"> Müşteriler</span>
+    </a></li>
+    <li><a href="{{ url_for('ilanlar') }}" onclick="mobClose()" title="İlanlar"
+           class="nav-link {% if request.endpoint and 'ilan' in request.endpoint and 'musteri' not in request.endpoint %}active{% endif %}">
+      <i class="bi bi-house-fill"></i><span class="nav-text"> İlanlar</span>
+    </a></li>
+    <li><a href="{{ url_for('randevular') }}" onclick="mobClose()" title="Randevular"
+           class="nav-link {% if request.endpoint and 'randevu' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-calendar3"></i><span class="nav-text"> Randevular</span>
+    </a></li>
   </ul>
 
-  <div class="mt-auto sb-footer">
+  <div class="sb-foot">
     <span class="text-white-50" style="font-size:.7rem;">
-      <i class="bi bi-circle-fill text-success" style="font-size:.5rem;"></i> Çevrimiçi
+      <i class="bi bi-circle-fill text-success" style="font-size:.45rem;"></i> Çevrimiçi
     </span>
   </div>
 </nav>
 
-<!-- ══════════════════════════════
-     ANA İÇERİK
-══════════════════════════════ -->
-<div class="main" id="mainContent">
+<!-- Çekme kolu (masaüstü toggle tab) -->
+<div class="sb-tab" id="sbTab" onclick="deskToggle()" title="Menüyü daralt / genişlet">
+  <i class="bi bi-chevron-left" id="tabIcon"></i>
+</div>
+
+<!-- ── ANA İÇERİK ── -->
+<div class="main" id="mainEl">
   <div class="topbar">
     <div>
       <p class="page-title">{% block page_title %}{% endblock %}</p>
@@ -350,63 +314,60 @@
 
   <div class="content">
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for cat, msg in messages %}
-          <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' if cat == 'danger' else 'warning' }} alert-dismissible fade show mb-3" role="alert">
-            {{ msg }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
+      {% if messages %}{% for cat, msg in messages %}
+        <div class="alert alert-{{ 'success' if cat=='success' else 'danger' if cat=='danger' else 'warning' }} alert-dismissible fade show mb-3">
+          {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}{% endif %}
     {% endwith %}
-
     {% block content %}{% endblock %}
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  const sidebar    = document.getElementById('sidebar');
-  const mainEl     = document.getElementById('mainContent');
-  const overlay    = document.getElementById('sidebarOverlay');
-  const collapseIcon = document.getElementById('collapseIcon');
+  const sb      = document.getElementById('sidebar');
+  const main    = document.getElementById('mainEl');
+  const tab     = document.getElementById('sbTab');
+  const tabIcon = document.getElementById('tabIcon');
+  const overlay = document.getElementById('sbOverlay');
 
-  /* ── Masaüstü: daralt / genişlet ── */
-  function deskSidebarToggle() {
-    const mini = sidebar.classList.toggle('mini');
-    mainEl.classList.toggle('mini', mini);
-    collapseIcon.className = mini ? 'bi bi-chevron-right' : 'bi bi-chevron-left';
+  /* ── Masaüstü: çekme kolu ── */
+  function deskToggle() {
+    const mini = sb.classList.toggle('mini');
+    main.classList.toggle('mini', mini);
+    tab.classList.toggle('mini', mini);
+    tabIcon.className = mini ? 'bi bi-chevron-right' : 'bi bi-chevron-left';
     localStorage.setItem('sbMini', mini ? '1' : '0');
   }
 
-  /* ── Mobil: aç / kapat ── */
-  function mobSidebarToggle() {
-    const open = sidebar.classList.toggle('open');
+  /* ── Mobil: hamburger ── */
+  function mobToggle() {
+    const open = sb.classList.toggle('open');
     overlay.classList.toggle('open', open);
     document.body.style.overflow = open ? 'hidden' : '';
   }
-  function mobSidebarClose() {
-    sidebar.classList.remove('open');
+  function mobClose() {
+    sb.classList.remove('open');
     overlay.classList.remove('open');
     document.body.style.overflow = '';
   }
 
-  /* ── Kayıtlı durumu uygula (masaüstü) ── */
+  /* ── Sayfa yüklenince kayıtlı durumu uygula ── */
   if (window.innerWidth >= 768 && localStorage.getItem('sbMini') === '1') {
-    sidebar.classList.add('mini');
-    mainEl.classList.add('mini');
-    collapseIcon.className = 'bi bi-chevron-right';
+    sb.classList.add('mini');
+    main.classList.add('mini');
+    tab.classList.add('mini');
+    tabIcon.className = 'bi bi-chevron-right';
   }
 
-  /* ── ESC ile kapat ── */
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') mobSidebarClose(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') mobClose(); });
 
   /* ── Silme onay ── */
   document.querySelectorAll('.delete-confirm').forEach(btn => {
     btn.addEventListener('click', function () {
-      if (confirm(this.dataset.confirm || 'Silmek istediğinizden emin misiniz?')) {
+      if (confirm(this.dataset.confirm || 'Silmek istediğinizden emin misiniz?'))
         this.closest('form').submit();
-      }
     });
   });
 </script>
