@@ -1,101 +1,81 @@
 {% extends "base.html" %}
-
 {% block title %}{{ baslik }}{% endblock %}
 {% block page_title %}{{ baslik }}{% endblock %}
-{% block page_sub %}Randevu bilgilerini doldurun{% endblock %}
 
-{% block topbar_action %}
-  <a href="{{ url_for('randevular') }}" class="btn btn-outline-secondary btn-sm">
-    <i class="bi bi-arrow-left me-1"></i> Geri
-  </a>
+{% block header_left %}
+  <a href="{{ url_for('randevular') }}" class="tb-btn"><i class="bi bi-arrow-left"></i></a>
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-lg-7 col-xl-6">
-    <div class="card">
-      <div class="card-header px-4 py-3">
-        <i class="bi bi-calendar-event me-2 text-primary"></i>{{ baslik }}
-      </div>
-      <div class="card-body p-4">
-        <form method="post">
-          <div class="row g-3">
+<form method="post" class="page-content">
 
-            <div class="col-12">
-              <label class="form-label fw-semibold">Müşteri</label>
-              <select name="musteri_id" class="form-select">
-                <option value="">— Müşteri seçin (isteğe bağlı) —</option>
-                {% for m in musteriler %}
-                  <option value="{{ m.id }}"
-                    {% if randevu and randevu.musteri_id == m.id %}selected
-                    {% elif pre_musteri_id and pre_musteri_id | int == m.id %}selected
-                    {% endif %}>
-                    {{ m.ad }} {{ m.soyad }}{% if m.telefon %} – {{ m.telefon }}{% endif %}
-                  </option>
-                {% endfor %}
-              </select>
-            </div>
+  <div class="form-group">
+    <label class="form-label">Müşteri</label>
+    <select name="musteri_id" class="form-select">
+      <option value="">— Müşteri seçin —</option>
+      {% for m in musteriler %}
+      <option value="{{ m.id }}"
+        {% if randevu and randevu.musteri_id == m.id %}selected
+        {% elif pre_musteri_id and pre_musteri_id | int == m.id %}selected{% endif %}>
+        {{ m.ad }} {{ m.soyad }}{% if m.telefon %} · {{ m.telefon }}{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
 
-            <div class="col-12">
-              <label class="form-label fw-semibold">İlan</label>
-              <select name="ilan_id" class="form-select">
-                <option value="">— İlan seçin (isteğe bağlı) —</option>
-                {% for i in ilan_listesi %}
-                  <option value="{{ i.id }}"
-                    {% if randevu and randevu.ilan_id == i.id %}selected
-                    {% elif pre_ilan_id and pre_ilan_id | int == i.id %}selected
-                    {% endif %}>
-                    {{ i.baslik }}{% if i.sehir %} ({{ i.sehir }}){% endif %}
-                  </option>
-                {% endfor %}
-              </select>
-            </div>
+  <div class="form-group">
+    <label class="form-label">İlan</label>
+    <select name="ilan_id" class="form-select">
+      <option value="">— İlan seçin (isteğe bağlı) —</option>
+      {% for i in ilan_listesi %}
+      <option value="{{ i.id }}"
+        {% if randevu and randevu.ilan_id == i.id %}selected
+        {% elif pre_ilan_id and pre_ilan_id | int == i.id %}selected{% endif %}>
+        {{ i.baslik }}{% if i.sehir %} ({{ i.sehir }}){% endif %}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
 
-            <div class="col-sm-6">
-              <label class="form-label fw-semibold">Tarih <span class="text-danger">*</span></label>
-              <input type="date" name="tarih" class="form-control"
-                     value="{{ randevu.tarih if randevu else '' }}" required>
-            </div>
-            <div class="col-sm-6">
-              <label class="form-label fw-semibold">Saat</label>
-              <input type="time" name="saat" class="form-control"
-                     value="{{ randevu.saat if randevu and randevu.saat else '' }}">
-            </div>
-
-            <div class="col-12">
-              <label class="form-label fw-semibold">Konu</label>
-              <input type="text" name="konu" class="form-control"
-                     value="{{ randevu.konu if randevu else '' }}"
-                     placeholder="Örn: Tapu görüşmesi, Ev gezisi, Fiyat müzakeresi…">
-            </div>
-
-            <div class="col-12">
-              <label class="form-label fw-semibold">Durum</label>
-              <select name="durum" class="form-select">
-                <option value="planlandı"  {% if not randevu or randevu.durum == 'planlandı'  %}selected{% endif %}>Planlandı</option>
-                <option value="tamamlandı" {% if randevu and randevu.durum == 'tamamlandı' %}selected{% endif %}>Tamamlandı</option>
-                <option value="iptal"      {% if randevu and randevu.durum == 'iptal'      %}selected{% endif %}>İptal</option>
-              </select>
-            </div>
-
-            <div class="col-12">
-              <label class="form-label fw-semibold">Notlar</label>
-              <textarea name="notlar" class="form-control" rows="3"
-                        placeholder="Randevu ile ilgili notlar, hatırlatmalar…">{{ randevu.notlar if randevu else '' }}</textarea>
-            </div>
-
-            <div class="col-12 d-flex gap-2 mt-2">
-              <button type="submit" class="btn btn-primary px-4">
-                <i class="bi bi-check-lg me-1"></i>
-                {{ 'Güncelle' if randevu else 'Kaydet' }}
-              </button>
-              <a href="{{ url_for('randevular') }}" class="btn btn-outline-secondary px-3">İptal</a>
-            </div>
-
-          </div>
-        </form>
-      </div>
+  <div class="row g-2 mb-3">
+    <div class="col-7">
+      <label class="form-label">Tarih <span class="text-danger">*</span></label>
+      <input type="date" name="tarih" class="form-control"
+             value="{{ randevu.tarih if randevu else '' }}" required>
+    </div>
+    <div class="col-5">
+      <label class="form-label">Saat</label>
+      <input type="time" name="saat" class="form-control"
+             value="{{ randevu.saat if randevu and randevu.saat else '' }}">
     </div>
   </div>
-</div>
+
+  <div class="form-group">
+    <label class="form-label">Konu</label>
+    <input type="text" name="konu" class="form-control"
+           value="{{ randevu.konu if randevu else '' }}"
+           placeholder="Ev gezisi, tapu görüşmesi…">
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Durum</label>
+    <select name="durum" class="form-select">
+      <option value="planlandı"  {% if not randevu or randevu.durum == 'planlandı'  %}selected{% endif %}>Planlandı</option>
+      <option value="tamamlandı" {% if randevu and randevu.durum == 'tamamlandı'   %}selected{% endif %}>Tamamlandı</option>
+      <option value="iptal"      {% if randevu and randevu.durum == 'iptal'         %}selected{% endif %}>İptal</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Notlar</label>
+    <textarea name="notlar" class="form-control"
+              placeholder="Randevu notları…">{{ randevu.notlar if randevu else '' }}</textarea>
+  </div>
+
+  <button type="submit" class="btn btn-primary btn-full mt-2">
+    <i class="bi bi-check-lg me-1"></i>{{ 'Güncelle' if randevu else 'Kaydet' }}
+  </button>
+  <a href="{{ url_for('randevular') }}" class="btn btn-outline-secondary btn-full mt-2">İptal</a>
+
+</form>
 {% endblock %}

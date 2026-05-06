@@ -3,136 +3,169 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>{% block title %}Emlak Pro{% endblock %} — Emlak Danışmanlık</title>
+  <title>{% block title %}Emlak Pro{% endblock %}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <style>
-    /* ── Değişkenler ── */
     :root {
-      --sb-bg:   #1b3a5c;
-      --sb-hov:  #254e7d;
-      --sb-act:  #2d5f99;
-      --accent:  #e67e22;
-      --sb-w:    255px;
-      --sb-mini: 62px;
-      --tr: 0.22s ease;
+      --primary: #1b3a5c;
+      --primary-light: #2d5f99;
+      --accent: #e67e22;
+      --bg: #f1f4f8;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+      --nav-h: 60px;
+      --top-h: 56px;
     }
 
-    body { background: #f1f4f8; font-family: 'Segoe UI', system-ui, sans-serif; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ── Sidebar ── */
-    .sidebar {
-      width: var(--sb-w);
-      background: var(--sb-bg);
-      transition: width var(--tr);
-      overflow: hidden;
-    }
-    .sidebar.mini { width: var(--sb-mini); }
-
-    .sb-brand-text { overflow: hidden; white-space: nowrap; }
-    .sb-brand-text .name { color: #fff; font-size: .97rem; font-weight: 700; margin: 0; }
-    .sb-brand-text .sub  { color: rgba(255,255,255,.4); font-size: .68rem; }
-
-    .sb-section {
-      padding: .8rem 1rem .15rem;
-      color: rgba(255,255,255,.3);
-      font-size: .63rem; text-transform: uppercase; letter-spacing: .1em;
-      white-space: nowrap; overflow: hidden;
+    body {
+      background: var(--bg);
+      font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px; color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
     }
 
-    .sb-link {
-      display: flex; align-items: center; gap: .65rem;
-      color: rgba(255,255,255,.65);
-      padding: .72rem 1rem;
-      border-left: 3px solid transparent;
-      min-height: 46px; white-space: nowrap;
-      text-decoration: none;
-      transition: background .14s, color .14s;
-    }
-    .sb-link:hover  { color: #fff; background: var(--sb-hov); }
-    .sb-link.active { color: #fff; background: var(--sb-act); border-left-color: var(--accent); }
-    .sb-link .bi    { font-size: 1.05rem; width: 20px; text-align: center; flex-shrink: 0; }
-    .sb-link .lbl   { white-space: nowrap; overflow: hidden; }
-
-    /* Mini modda metin/bölüm başlıkları kaybolur */
-    .sidebar.mini .sb-brand-text,
-    .sidebar.mini .sb-section,
-    .sidebar.mini .lbl,
-    .sidebar.mini .sb-foot-text { display: none; }
-    .sidebar.mini .sb-link { justify-content: center; padding: .75rem 0; gap: 0; border-left: none; }
-    .sidebar.mini .sb-link.active { border-right: 3px solid var(--accent); }
-    .sidebar.mini .sb-link .bi    { width: auto; font-size: 1.2rem; }
-    .sidebar.mini .sb-brand-inner { justify-content: center; }
-
-    /* Masaüstü çekme kolu */
-    .sb-toggle-tab {
-      position: fixed; top: 50%; left: var(--sb-w);
-      transform: translateY(-50%);
-      width: 18px; height: 52px;
-      background: var(--sb-bg); border-radius: 0 7px 7px 0;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; color: rgba(255,255,255,.7); font-size: .75rem;
-      box-shadow: 3px 0 8px rgba(0,0,0,.18);
-      transition: left var(--tr), background var(--tr);
-      z-index: 1030; user-select: none;
-    }
-    .sb-toggle-tab:hover { background: var(--sb-hov); color: #fff; }
-    .sb-toggle-tab.mini  { left: var(--sb-mini); }
-
-    /* ── Ana içerik ── */
-    .main-wrap {
-      margin-left: var(--sb-w);
-      min-height: 100vh;
-      transition: margin-left var(--tr);
-    }
-    .main-wrap.mini { margin-left: var(--sb-mini); }
-
-    /* Masaüstünde topbar sayfanın en üstünde sabit */
-    .topbar {
-      background: #fff;
-      border-bottom: 1px solid #dee2e6;
-      padding: .85rem 1.5rem;
+    /* ── Üst bar ── */
+    .top-bar {
       position: sticky; top: 0; z-index: 100;
-      display: flex; justify-content: space-between;
-      align-items: center; flex-wrap: wrap; gap: .5rem;
+      background: var(--primary);
+      height: var(--top-h);
+      display: flex; align-items: center;
+      padding: 0 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.2);
     }
-    .page-title { font-size: 1rem; font-weight: 600; color: #1b3a5c; margin: 0; }
-    .page-sub   { font-size: .78rem; color: #6c757d; margin: 0; }
-    .content-area { padding: 1.5rem; }
+    .tb-btn {
+      width: 48px; height: 48px; flex-shrink: 0;
+      background: none; border: none; color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.15rem; border-radius: 8px;
+      text-decoration: none; cursor: pointer;
+    }
+    .tb-btn:hover, .tb-btn:active { background: rgba(255,255,255,.15); color: white; }
+    .tb-title {
+      flex: 1; text-align: center;
+      color: white; font-size: 1.05rem; font-weight: 600;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
 
-    /* ── Mobil ── */
-    @media (max-width: 767.98px) {
-      .main-wrap { margin-left: 0 !important; padding-top: 56px; }
-      .topbar    { padding: .7rem 1rem; }
-      .content-area { padding: .9rem; }
+    /* ── Alt navigasyon ── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: white;
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -2px 12px rgba(0,0,0,.07);
+      display: flex;
+      height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .bn-item {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-decoration: none; color: #9ca3af; gap: 3px;
+      padding: 6px 4px;
+      -webkit-tap-highlight-color: transparent;
+      transition: color .12s;
+    }
+    .bn-item.active { color: var(--primary); }
+    .bn-item .bi   { font-size: 1.45rem; line-height: 1; }
+    .bn-item .lbl  { font-size: .6rem; font-weight: 600; letter-spacing: .01em; }
+
+    /* ── İçerik alanı ── */
+    .page-content { padding: 14px; }
+
+    /* ── Alert ── */
+    .alert { border-radius: 10px; font-size: .9rem; margin-bottom: 12px; }
+
+    /* ── Kartlar ── */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+    .card-body { padding: 14px; }
+    .card-header {
+      padding: 12px 14px; background: var(--card);
+      border-bottom: 1px solid var(--border);
+      font-weight: 600; font-size: .95rem;
+      display: flex; align-items: center; justify-content: space-between;
     }
 
-    /* ── Offcanvas renk ── */
-    #mob-offcanvas {
-      background: var(--sb-bg) !important;
-      max-width: var(--sb-w);
+    /* ── Liste satırı (kart alternatifi) ── */
+    .list-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px;
+      background: white; border-bottom: 1px solid #f3f4f6;
+      text-decoration: none; color: var(--text);
+      min-height: 64px;
+      -webkit-tap-highlight-color: transparent;
     }
-    #mob-offcanvas .offcanvas-header {
-      border-bottom: 1px solid rgba(255,255,255,.12);
+    .list-row:last-child { border-bottom: none; }
+    .list-row:active { background: #f8f9fa; }
+    .list-row .row-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 1.1rem;
     }
-    #mob-offcanvas .offcanvas-title { color: #fff; font-weight: 700; }
-    #mob-offcanvas .btn-close {
-      filter: invert(1) grayscale(1) brightness(2); opacity: .65;
+    .list-row .row-body { flex: 1; min-width: 0; }
+    .list-row .row-title {
+      font-size: .95rem; font-weight: 600; color: var(--text);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    #mob-offcanvas .offcanvas-body { padding: 0; }
+    .list-row .row-sub { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+    .list-row .row-chevron { color: #d1d5db; font-size: .9rem; flex-shrink: 0; }
 
-    /* ── Kart / tablo ── */
-    .card { border: 1px solid #dde3ec; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
-    .card-header { background: #fff; border-bottom: 1px solid #dde3ec; font-weight: 600; border-radius: 10px 10px 0 0 !important; }
-    .card-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .stat-card { background: #fff; border-radius: 10px; padding: 1.3rem; border: 1px solid #dde3ec; }
-    .stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; flex-shrink: 0; }
-    .table { min-width: 480px; }
-    .table thead th { background: #f7f9fc; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; white-space: nowrap; }
-    .table tbody tr:hover { background: #f7f9fc; }
+    /* ── Stat kart ── */
+    .stat-card {
+      background: var(--card); border-radius: 14px;
+      padding: 14px; border: 1px solid var(--border);
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+    .stat-card .val { font-size: 1.8rem; font-weight: 700; line-height: 1.1; }
+    .stat-card .lbl { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+    .stat-card .ico { font-size: 1.4rem; }
 
-    /* ── Badge ── */
-    .bd { display: inline-block; padding: .25em .55em; border-radius: 5px; font-size: .75rem; font-weight: 600; }
+    /* ── Form ── */
+    .form-label  { font-size: .85rem; font-weight: 600; margin-bottom: 5px; color: #374151; }
+    .form-control, .form-select {
+      font-size: 16px; border-radius: 10px;
+      border: 1.5px solid var(--border); padding: 12px 14px;
+      min-height: 48px; background: white;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 3px rgba(27,58,92,.12);
+    }
+    textarea.form-control { min-height: 96px; }
+    .form-text { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+    .form-group { margin-bottom: 16px; }
+    .form-divider {
+      border: none; border-top: 1px solid var(--border);
+      margin: 20px 0 16px;
+    }
+    .form-section-title {
+      font-size: .78rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--muted); margin-bottom: 12px;
+    }
+
+    /* ── Butonlar ── */
+    .btn { min-height: 48px; border-radius: 10px; font-size: .95rem; font-weight: 500; }
+    .btn-primary { background: var(--primary); border-color: var(--primary); }
+    .btn-primary:hover, .btn-primary:active { background: var(--primary-light); border-color: var(--primary-light); }
+    .btn-outline-primary { color: var(--primary); border-color: var(--primary); }
+    .btn-outline-primary:hover { background: var(--primary); color: white; }
+    .btn-full { display: block; width: 100%; }
+    .btn-icon {
+      width: 40px; height: 40px; min-height: 40px; padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 8px;
+    }
+
+    /* ── Badges ── */
+    .bd { display: inline-block; padding: .3em .65em; border-radius: 6px; font-size: .75rem; font-weight: 600; }
     .bd-satilik{background:#dbeafe;color:#1d4ed8;} .bd-kiralik{background:#ede9fe;color:#6d28d9;}
     .bd-aktif{background:#dcfce7;color:#166534;}   .bd-satildi{background:#ffedd5;color:#9a3412;}
     .bd-kiralandı{background:#fce7f3;color:#9d174d;} .bd-pasif{background:#e5e7eb;color:#374151;}
@@ -142,186 +175,134 @@
     .bd-cok_ilgileniyor{background:#dcfce7;color:#166534;}
     .bd-degil{background:#fee2e2;color:#991b1b;}
 
-    /* ── Butonlar ── */
-    .btn { min-height: 38px; }
-    .btn-primary { background: var(--sb-bg); border-color: var(--sb-bg); }
-    .btn-primary:hover { background: var(--sb-hov); border-color: var(--sb-hov); }
-    .btn-outline-primary { color: var(--sb-bg); border-color: var(--sb-bg); }
-    .btn-outline-primary:hover { background: var(--sb-bg); border-color: var(--sb-bg); }
-    .form-control, .form-select { font-size: 16px; } /* iOS zoom engeli */
-    .form-control:focus, .form-select:focus { border-color: var(--sb-bg); box-shadow: 0 0 0 .2rem rgba(27,58,92,.18); }
+    /* ── Chip filtre ── */
+    .filter-chips { display: flex; gap: 8px; overflow-x: auto; padding: 0 14px 12px; scrollbar-width: none; }
+    .filter-chips::-webkit-scrollbar { display: none; }
+    .chip {
+      flex-shrink: 0; padding: 7px 14px; border-radius: 20px;
+      font-size: .83rem; font-weight: 500; cursor: pointer;
+      border: 1.5px solid var(--border); background: white; color: var(--muted);
+      text-decoration: none; min-height: 36px; display: flex; align-items: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .chip.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+    /* ── Arama kutusu ── */
+    .search-bar {
+      display: flex; gap: 8px; padding: 12px 14px;
+      background: white; border-bottom: 1px solid var(--border);
+    }
+    .search-bar .form-control { border-radius: 10px; }
+
+    /* ── Boş durum ── */
+    .empty-state {
+      text-align: center; padding: 48px 24px; color: var(--muted);
+    }
+    .empty-state .bi { font-size: 3rem; opacity: .25; display: block; margin-bottom: 12px; }
+    .empty-state p  { font-size: .9rem; margin-bottom: 16px; }
+
+    /* ── Info satırı ── */
+    .info-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: .88rem;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-row .bi { color: var(--muted); font-size: 1rem; margin-top: 1px; flex-shrink: 0; }
+    .info-row .lbl { font-size: .72rem; color: var(--muted); }
+    .info-row .val { font-weight: 500; }
+
+    /* ── Sekme ── */
+    .tab-bar {
+      display: flex; background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 0 14px; gap: 0; overflow-x: auto;
+    }
+    .tab-btn {
+      flex-shrink: 0; padding: 12px 16px; font-size: .88rem;
+      font-weight: 600; color: var(--muted); border: none; background: none;
+      border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
     .delete-confirm { cursor: pointer; }
   </style>
 </head>
 <body>
+{% set ep = request.endpoint or '' %}
 
-{# ═══════════════════════════════════════════
-   1. MOBİL NAVBAR — sadece <768px görünür
-   Bootstrap: d-flex d-md-none
-═══════════════════════════════════════════ #}
-<nav class="navbar d-flex d-md-none align-items-center px-3 fixed-top"
-     style="background:var(--sb-bg);height:56px;z-index:1040;">
+{# ── Üst bar ── #}
+<header class="top-bar">
+  <div style="width:48px;">
+    {% block header_left %}
+      <a href="{{ url_for('index') }}" class="tb-btn">
+        <i class="bi bi-building"></i>
+      </a>
+    {% endblock %}
+  </div>
+  <h1 class="tb-title">{% block page_title %}Emlak Pro{% endblock %}</h1>
+  <div style="width:48px;display:flex;justify-content:flex-end;">
+    {% block header_right %}{% endblock %}
+  </div>
+</header>
 
-  {# Hamburger — offcanvas açar #}
-  <button class="navbar-toggler border-0 p-1 me-2"
-          type="button"
-          data-bs-toggle="offcanvas"
-          data-bs-target="#mob-offcanvas"
-          aria-controls="mob-offcanvas"
-          aria-label="Menü">
-    <span class="navbar-toggler-icon"></span>
-  </button>
+{# ── Flash mesajları + içerik ── #}
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="page-content pb-0">
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ 'success' if cat=='success' else 'danger' if cat=='danger' else 'warning' }} alert-dismissible">
+            {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
 
-  <span class="navbar-brand text-white mb-0 me-auto fw-bold" style="font-size:1rem;">
-    <i class="bi bi-building me-1"></i>Emlak Pro
-  </span>
-
-  <a href="{{ url_for('randevu_ekle') }}" class="text-white text-decoration-none fs-5 p-1">
-    <i class="bi bi-calendar-plus"></i>
+{# ── Alt navigasyon ── #}
+<nav class="bottom-nav">
+  <a href="{{ url_for('index') }}"
+     class="bn-item {% if ep == 'index' %}active{% endif %}">
+    <i class="bi bi-speedometer2"></i>
+    <span class="lbl">Pano</span>
+  </a>
+  <a href="{{ url_for('musteriler') }}"
+     class="bn-item {% if 'musteri' in ep and 'ilan' not in ep %}active{% endif %}">
+    <i class="bi bi-people{% if 'musteri' in ep and 'ilan' not in ep %}-fill{% endif %}"></i>
+    <span class="lbl">Müşteriler</span>
+  </a>
+  <a href="{{ url_for('ilanlar') }}"
+     class="bn-item {% if 'ilan' in ep and 'musteri' not in ep %}active{% endif %}">
+    <i class="bi bi-house{% if 'ilan' in ep and 'musteri' not in ep %}-fill{% endif %}"></i>
+    <span class="lbl">İlanlar</span>
+  </a>
+  <a href="{{ url_for('randevular') }}"
+     class="bn-item {% if 'randevu' in ep %}active{% endif %}">
+    <i class="bi bi-calendar3{% if 'randevu' in ep %}-fill{% endif %}"></i>
+    <span class="lbl">Randevular</span>
   </a>
 </nav>
-
-{# ═══════════════════════════════════════════
-   2. MOBİL OFFCANVAS (Bootstrap 5)
-   Offcanvas'ın kendisinde d-* sınıfı YOK —
-   sadece trigger mobilde görünür, bu yeterli.
-═══════════════════════════════════════════ #}
-<div class="offcanvas offcanvas-start"
-     tabindex="-1"
-     id="mob-offcanvas"
-     aria-labelledby="mob-offcanvas-label">
-
-  <div class="offcanvas-header">
-    <span class="offcanvas-title" id="mob-offcanvas-label">
-      <i class="bi bi-building me-2"></i>Emlak Pro
-    </span>
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Kapat"></button>
-  </div>
-
-  <div class="offcanvas-body">
-    <div class="sb-section">Genel</div>
-    <a href="{{ url_for('index') }}" data-bs-dismiss="offcanvas"
-       class="sb-link {% if request.endpoint == 'index' %}active{% endif %}">
-      <i class="bi bi-speedometer2"></i><span class="lbl">Özet Pano</span>
-    </a>
-
-    <div class="sb-section">Yönetim</div>
-    <a href="{{ url_for('musteriler') }}" data-bs-dismiss="offcanvas"
-       class="sb-link {% if request.endpoint and 'musteri' in request.endpoint and 'ilan' not in request.endpoint %}active{% endif %}">
-      <i class="bi bi-people-fill"></i><span class="lbl">Müşteriler</span>
-    </a>
-    <a href="{{ url_for('ilanlar') }}" data-bs-dismiss="offcanvas"
-       class="sb-link {% if request.endpoint and 'ilan' in request.endpoint and 'musteri' not in request.endpoint %}active{% endif %}">
-      <i class="bi bi-house-fill"></i><span class="lbl">İlanlar</span>
-    </a>
-    <a href="{{ url_for('randevular') }}" data-bs-dismiss="offcanvas"
-       class="sb-link {% if request.endpoint and 'randevu' in request.endpoint %}active{% endif %}">
-      <i class="bi bi-calendar3"></i><span class="lbl">Randevular</span>
-    </a>
-  </div>
-</div>
-
-{# ═══════════════════════════════════════════
-   3. MASAÜSTÜ SIDEBAR — d-none d-md-flex
-   768px altında Bootstrap tamamen gizler.
-═══════════════════════════════════════════ #}
-<nav class="sidebar d-none d-md-flex flex-column position-fixed top-0 start-0 vh-100"
-     id="desktop-sidebar">
-
-  <div class="d-flex align-items-center gap-2 sb-brand-inner px-3 py-4 border-bottom border-white border-opacity-10">
-    <i class="bi bi-building text-white fs-5 flex-shrink-0"></i>
-    <div class="sb-brand-text">
-      <p class="name">Emlak Pro</p>
-      <p class="sub">Danışmanlık Sistemi</p>
-    </div>
-  </div>
-
-  <div class="sb-section">Genel</div>
-  <a href="{{ url_for('index') }}" title="Özet Pano"
-     class="sb-link {% if request.endpoint == 'index' %}active{% endif %}">
-    <i class="bi bi-speedometer2"></i><span class="lbl">Özet Pano</span>
-  </a>
-
-  <div class="sb-section">Yönetim</div>
-  <a href="{{ url_for('musteriler') }}" title="Müşteriler"
-     class="sb-link {% if request.endpoint and 'musteri' in request.endpoint and 'ilan' not in request.endpoint %}active{% endif %}">
-    <i class="bi bi-people-fill"></i><span class="lbl">Müşteriler</span>
-  </a>
-  <a href="{{ url_for('ilanlar') }}" title="İlanlar"
-     class="sb-link {% if request.endpoint and 'ilan' in request.endpoint and 'musteri' not in request.endpoint %}active{% endif %}">
-    <i class="bi bi-house-fill"></i><span class="lbl">İlanlar</span>
-  </a>
-  <a href="{{ url_for('randevular') }}" title="Randevular"
-     class="sb-link {% if request.endpoint and 'randevu' in request.endpoint %}active{% endif %}">
-    <i class="bi bi-calendar3"></i><span class="lbl">Randevular</span>
-  </a>
-
-  <div class="mt-auto px-3 pb-3 sb-foot-text">
-    <small class="text-white-50">
-      <i class="bi bi-circle-fill text-success" style="font-size:.45rem;"></i> Çevrimiçi
-    </small>
-  </div>
-</nav>
-
-{# Masaüstü çekme kolu (mobilde Bootstrap d-none d-md-flex ile gizlenir) #}
-<div class="sb-toggle-tab d-none d-md-flex" id="sb-tab" onclick="deskToggle()" title="Daralt / Genişlet">
-  <i class="bi bi-chevron-left" id="sb-tab-icon"></i>
-</div>
-
-{# ═══════════════════════════════════════════
-   4. ANA İÇERİK
-═══════════════════════════════════════════ #}
-<div class="main-wrap" id="main-wrap">
-
-  <div class="topbar">
-    <div>
-      <p class="page-title">{% block page_title %}{% endblock %}</p>
-      <p class="page-sub">{% block page_sub %}{% endblock %}</p>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">{% block topbar_action %}{% endblock %}</div>
-  </div>
-
-  <div class="content-area">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}{% for cat, msg in messages %}
-        <div class="alert alert-{{ 'success' if cat=='success' else 'danger' if cat=='danger' else 'warning' }} alert-dismissible fade show mb-3">
-          {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      {% endfor %}{% endif %}
-    {% endwith %}
-    {% block content %}{% endblock %}
-  </div>
-
-</div><!-- /main-wrap -->
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  const deskSidebar = document.getElementById('desktop-sidebar');
-  const mainWrap    = document.getElementById('main-wrap');
-  const sbTab       = document.getElementById('sb-tab');
-  const sbTabIcon   = document.getElementById('sb-tab-icon');
-
-  function deskToggle() {
-    const mini = deskSidebar.classList.toggle('mini');
-    mainWrap.classList.toggle('mini', mini);
-    sbTab.classList.toggle('mini', mini);
-    sbTabIcon.className = mini ? 'bi bi-chevron-right' : 'bi bi-chevron-left';
-    localStorage.setItem('sbMini', mini ? '1' : '0');
-  }
-
-  // Sayfa yüklenince kayıtlı durumu uygula (sadece masaüstünde)
-  if (window.innerWidth >= 768 && localStorage.getItem('sbMini') === '1') {
-    deskSidebar.classList.add('mini');
-    mainWrap.classList.add('mini');
-    sbTab.classList.add('mini');
-    sbTabIcon.className = 'bi bi-chevron-right';
-  }
-
-  // Silme onayı
   document.querySelectorAll('.delete-confirm').forEach(btn => {
-    btn.addEventListener('click', function () {
+    btn.addEventListener('click', function() {
       if (confirm(this.dataset.confirm || 'Silmek istediğinizden emin misiniz?'))
         this.closest('form').submit();
+    });
+  });
+  // Sekme sistemi
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const target = this.dataset.tab;
+      this.closest('.tab-wrapper').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      this.closest('.tab-wrapper').querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      this.classList.add('active');
+      document.getElementById(target).classList.add('active');
     });
   });
 </script>

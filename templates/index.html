@@ -1,160 +1,123 @@
 {% extends "base.html" %}
+{% block title %}Ana Pano{% endblock %}
+{% block page_title %}Emlak Pro{% endblock %}
 
-{% block title %}Özet Pano{% endblock %}
-{% block page_title %}Özet Pano{% endblock %}
-{% block page_sub %}Hoş geldiniz — genel durum özeti{% endblock %}
-
-{% block topbar_action %}
-  <span class="text-muted" style="font-size:.85rem;">
-    <i class="bi bi-calendar3 me-1"></i>{{ now if now else '' }}
-  </span>
+{% block header_right %}
+  <a href="{{ url_for('randevu_ekle') }}" class="tb-btn"><i class="bi bi-plus-lg"></i></a>
 {% endblock %}
 
 {% block content %}
+<div class="page-content">
 
-<!-- Stat kartları -->
-<div class="row g-3 mb-4">
-  <div class="col-6 col-xl-3">
-    <div class="stat-card d-flex align-items-center gap-3">
-      <div class="stat-icon" style="background:#dbeafe;color:#1d4ed8;"><i class="bi bi-people-fill"></i></div>
-      <div>
-        <div style="font-size:1.6rem;font-weight:700;line-height:1;">{{ stats.musteri_sayisi }}</div>
-        <div class="text-muted" style="font-size:.82rem;">Toplam Müşteri</div>
+  {# Stat kartları #}
+  <div class="row g-2 mb-3">
+    <div class="col-6">
+      <div class="stat-card">
+        <div class="ico mb-1" style="color:#1d4ed8;">👥</div>
+        <div class="val">{{ stats.musteri_sayisi }}</div>
+        <div class="lbl">Müşteri</div>
+      </div>
+    </div>
+    <div class="col-6">
+      <div class="stat-card">
+        <div class="ico mb-1" style="color:#166534;">🏠</div>
+        <div class="val">{{ stats.aktif_ilan }}</div>
+        <div class="lbl">Aktif İlan</div>
+      </div>
+    </div>
+    <div class="col-6">
+      <div class="stat-card">
+        <div class="ico mb-1" style="color:#6d28d9;">📋</div>
+        <div class="val">{{ stats.ilan_sayisi }}</div>
+        <div class="lbl">Toplam İlan</div>
+      </div>
+    </div>
+    <div class="col-6">
+      <div class="stat-card">
+        <div class="ico mb-1" style="color:#9a3412;">📅</div>
+        <div class="val">{{ stats.yaklasan_randevu }}</div>
+        <div class="lbl">Yaklaşan Randevu</div>
       </div>
     </div>
   </div>
-  <div class="col-6 col-xl-3">
-    <div class="stat-card d-flex align-items-center gap-3">
-      <div class="stat-icon" style="background:#ede9fe;color:#6d28d9;"><i class="bi bi-house-fill"></i></div>
-      <div>
-        <div style="font-size:1.6rem;font-weight:700;line-height:1;">{{ stats.ilan_sayisi }}</div>
-        <div class="text-muted" style="font-size:.82rem;">Toplam İlan</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-xl-3">
-    <div class="stat-card d-flex align-items-center gap-3">
-      <div class="stat-icon" style="background:#dcfce7;color:#166534;"><i class="bi bi-check-circle-fill"></i></div>
-      <div>
-        <div style="font-size:1.6rem;font-weight:700;line-height:1;">{{ stats.aktif_ilan }}</div>
-        <div class="text-muted" style="font-size:.82rem;">Aktif İlan</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-xl-3">
-    <div class="stat-card d-flex align-items-center gap-3">
-      <div class="stat-icon" style="background:#ffedd5;color:#9a3412;"><i class="bi bi-calendar-event-fill"></i></div>
-      <div>
-        <div style="font-size:1.6rem;font-weight:700;line-height:1;">{{ stats.yaklasan_randevu }}</div>
-        <div class="text-muted" style="font-size:.82rem;">Yaklaşan Randevu</div>
-      </div>
-    </div>
-  </div>
-</div>
 
-<div class="row g-3">
-  <!-- Yaklaşan randevular -->
-  <div class="col-lg-7">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center py-3 px-4">
-        <span><i class="bi bi-calendar3 me-2 text-primary"></i>Yaklaşan Randevular</span>
-        <a href="{{ url_for('randevu_ekle') }}" class="btn btn-sm btn-primary">
-          <i class="bi bi-plus"></i> Ekle
-        </a>
+  {# Hızlı işlemler #}
+  <div class="row g-2 mb-3">
+    <div class="col-4">
+      <a href="{{ url_for('musteri_ekle') }}" class="btn btn-outline-primary btn-full d-flex flex-column align-items-center gap-1 py-3" style="font-size:.8rem;">
+        <i class="bi bi-person-plus fs-5"></i>Müşteri Ekle
+      </a>
+    </div>
+    <div class="col-4">
+      <a href="{{ url_for('ilan_ekle') }}" class="btn btn-outline-primary btn-full d-flex flex-column align-items-center gap-1 py-3" style="font-size:.8rem;">
+        <i class="bi bi-house-add fs-5"></i>İlan Ekle
+      </a>
+    </div>
+    <div class="col-4">
+      <a href="{{ url_for('randevu_ekle') }}" class="btn btn-primary btn-full d-flex flex-column align-items-center gap-1 py-3" style="font-size:.8rem;">
+        <i class="bi bi-calendar-plus fs-5"></i>Randevu
+      </a>
+    </div>
+  </div>
+
+  {# Yaklaşan randevular #}
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <span style="font-weight:700;font-size:.9rem;">Yaklaşan Randevular</span>
+    <a href="{{ url_for('randevular') }}" style="font-size:.8rem;color:var(--primary);">Tümü →</a>
+  </div>
+
+  {% if yaklasan_randevular %}
+  <div class="card mb-3">
+    {% for r in yaklasan_randevular %}
+    <a href="{{ url_for('randevu_duzenle', id=r.id) }}" class="list-row">
+      <div class="row-icon" style="background:#dbeafe;color:#1d4ed8;">
+        <i class="bi bi-calendar3"></i>
       </div>
-      <div class="card-body p-0">
-        {% if yaklasan_randevular %}
-        <table class="table table-hover mb-0">
-          <thead>
-            <tr>
-              <th class="ps-4">Tarih</th>
-              <th>Saat</th>
-              <th>Müşteri</th>
-              <th>İlan / Konu</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for r in yaklasan_randevular %}
-            <tr>
-              <td class="ps-4 fw-semibold">{{ r.tarih | tarih }}</td>
-              <td>{{ r.saat or '—' }}</td>
-              <td>
-                {% if r.musteri_adi %}
-                  <a href="{{ url_for('musteri_detay', id=r.musteri_id) }}" class="text-decoration-none">{{ r.musteri_adi }}</a>
-                {% else %}—{% endif %}
-              </td>
-              <td class="text-muted" style="font-size:.85rem;">
-                {{ r.ilan_baslik or r.konu or '—' }}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-        <div class="text-center text-muted py-5">
-          <i class="bi bi-calendar-x" style="font-size:2.5rem;opacity:.3;"></i>
-          <p class="mt-2 mb-0">Yaklaşan randevu yok</p>
+      <div class="row-body">
+        <div class="row-title">{{ r.musteri_adi or 'Müşteri belirtilmedi' }}</div>
+        <div class="row-sub">
+          {{ r.tarih | tarih }}{% if r.saat %} · {{ r.saat }}{% endif %}
+          {% if r.ilan_baslik %} · {{ r.ilan_baslik }}{% endif %}
         </div>
-        {% endif %}
       </div>
-      {% if yaklasan_randevular %}
-      <div class="card-footer bg-white border-top py-2 px-4">
-        <a href="{{ url_for('randevular') }}" class="text-decoration-none" style="font-size:.83rem;">
-          Tüm randevuları gör <i class="bi bi-arrow-right"></i>
-        </a>
-      </div>
-      {% endif %}
+      <span class="bd bd-{{ r.durum }}">{{ r.durum }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card mb-3">
+    <div class="empty-state">
+      <i class="bi bi-calendar-x"></i>
+      <p>Yaklaşan randevu yok</p>
     </div>
   </div>
+  {% endif %}
 
-  <!-- Son eklenen müşteriler -->
-  <div class="col-lg-5">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center py-3 px-4">
-        <span><i class="bi bi-people me-2 text-primary"></i>Son Müşteriler</span>
-        <a href="{{ url_for('musteri_ekle') }}" class="btn btn-sm btn-primary">
-          <i class="bi bi-plus"></i> Ekle
-        </a>
+  {# Son müşteriler #}
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <span style="font-weight:700;font-size:.9rem;">Son Müşteriler</span>
+    <a href="{{ url_for('musteriler') }}" style="font-size:.8rem;color:var(--primary);">Tümü →</a>
+  </div>
+
+  {% if son_musteriler %}
+  <div class="card">
+    {% for m in son_musteriler %}
+    <a href="{{ url_for('musteri_detay', id=m.id) }}" class="list-row">
+      <div class="row-icon" style="background:#ede9fe;color:#6d28d9;font-weight:700;font-size:.9rem;">
+        {{ m.ad[0] }}{{ m.soyad[0] }}
       </div>
-      <div class="card-body p-0">
-        {% if son_musteriler %}
-        <ul class="list-group list-group-flush">
-          {% for m in son_musteriler %}
-          <li class="list-group-item px-4 py-3 d-flex justify-content-between align-items-center">
-            <div>
-              <a href="{{ url_for('musteri_detay', id=m.id) }}" class="fw-semibold text-decoration-none text-dark">
-                {{ m.ad }} {{ m.soyad }}
-              </a>
-              {% if m.telefon %}
-              <div class="text-muted" style="font-size:.8rem;"><i class="bi bi-telephone me-1"></i>{{ m.telefon }}</div>
-              {% endif %}
-            </div>
-            {% if m.butce_min or m.butce_max %}
-            <small class="text-muted">
-              {{ m.butce_min | para if m.butce_min else '' }}
-              {% if m.butce_min and m.butce_max %} – {% endif %}
-              {{ m.butce_max | para if m.butce_max else '' }}
-            </small>
-            {% endif %}
-          </li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <div class="text-center text-muted py-5">
-          <i class="bi bi-person-x" style="font-size:2.5rem;opacity:.3;"></i>
-          <p class="mt-2 mb-0">Henüz müşteri eklenmedi</p>
+      <div class="row-body">
+        <div class="row-title">{{ m.ad }} {{ m.soyad }}</div>
+        <div class="row-sub">
+          {% if m.telefon %}{{ m.telefon }}{% endif %}
+          {% if m.butce_max %} · {{ m.butce_max | para }}{% endif %}
         </div>
-        {% endif %}
       </div>
-      {% if son_musteriler %}
-      <div class="card-footer bg-white border-top py-2 px-4">
-        <a href="{{ url_for('musteriler') }}" class="text-decoration-none" style="font-size:.83rem;">
-          Tüm müşterileri gör <i class="bi bi-arrow-right"></i>
-        </a>
-      </div>
-      {% endif %}
-    </div>
+      <i class="bi bi-chevron-right row-chevron"></i>
+    </a>
+    {% endfor %}
   </div>
-</div>
+  {% endif %}
 
+</div>
 {% endblock %}
