@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Randevular{% endblock %}
+{% block page_title %}Randevular{% endblock %}
+{% block page_sub %}Tüm randevu listesi{% endblock %}
+
+{% block topbar_action %}
+  <a href="{{ url_for('randevu_ekle') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-calendar-plus me-1"></i> Yeni Randevu
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Durum filtresi -->
+<div class="mb-3 d-flex gap-2 flex-wrap">
+  {% for d, label in [('', 'Tümü'), ('planlandı', 'Planlandı'), ('tamamlandı', 'Tamamlandı'), ('iptal', 'İptal')] %}
+  <a href="{{ url_for('randevular') }}{% if d %}?durum={{ d }}{% endif %}"
+     class="btn btn-sm {% if durum == d %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    {{ label }}
+  </a>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="card-header px-4 py-3">
+    <span>{{ randevular | length }} randevu</span>
+  </div>
+  <div class="card-body p-0">
+    {% if randevular %}
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th class="ps-4">Tarih</th>
+          <th>Saat</th>
+          <th>Müşteri</th>
+          <th>İlan</th>
+          <th>Konu</th>
+          <th>Durum</th>
+          <th class="text-end pe-4">İşlemler</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in randevular %}
+        <tr>
+          <td class="ps-4 fw-semibold">{{ r.tarih | tarih }}</td>
+          <td>{{ r.saat or '—' }}</td>
+          <td>
+            {% if r.musteri_id %}
+              <a href="{{ url_for('musteri_detay', id=r.musteri_id) }}" class="text-decoration-none">
+                {{ r.musteri_adi }}
+              </a>
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-size:.85rem;">
+            {% if r.ilan_id %}
+              <a href="{{ url_for('ilan_detay', id=r.ilan_id) }}" class="text-decoration-none text-muted">
+                {{ r.ilan_baslik }}
+              </a>
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-size:.85rem;color:#6c757d;">{{ r.konu or '—' }}</td>
+          <td><span class="bd bd-{{ r.durum }}">{{ r.durum }}</span></td>
+          <td class="text-end pe-4">
+            <a href="{{ url_for('randevu_duzenle', id=r.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Düzenle">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <form method="post" action="{{ url_for('randevu_sil', id=r.id) }}" class="d-inline">
+              <button type="button" class="btn btn-sm btn-outline-danger delete-confirm"
+                      data-confirm="Bu randevuyu silmek istiyor musunuz?">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-calendar-x" style="font-size:3rem;opacity:.25;"></i>
+      <p class="mt-3 mb-1 fw-semibold">Randevu bulunamadı</p>
+      <a href="{{ url_for('randevu_ekle') }}" class="btn btn-primary btn-sm mt-1">İlk randevuyu ekle</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}{{ musteri.ad }} {{ musteri.soyad }}{% endblock %}
+{% block page_title %}{{ musteri.ad }} {{ musteri.soyad }}{% endblock %}
+{% block page_sub %}Müşteri detay sayfası{% endblock %}
+
+{% block topbar_action %}
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('musteri_duzenle', id=musteri.id) }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-pencil me-1"></i> Düzenle
+    </a>
+    <form method="post" action="{{ url_for('musteri_sil', id=musteri.id) }}" class="d-inline">
+      <button type="button" class="btn btn-outline-danger btn-sm delete-confirm"
+              data-confirm="Bu müşteriyi silmek istiyor musunuz? Tüm ilişkili veriler de silinir.">
+        <i class="bi bi-trash me-1"></i> Sil
+      </button>
+    </form>
+    <a href="{{ url_for('musteriler') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i>
+    </a>
+  </div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+
+  <!-- Sol kolon: Müşteri bilgileri -->
+  <div class="col-lg-4">
+    <div class="card mb-3">
+      <div class="card-header px-4 py-3">
+        <i class="bi bi-person-circle me-2 text-primary"></i>Kişisel Bilgiler
+      </div>
+      <div class="card-body px-4 py-3">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div style="width:52px;height:52px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#1d4ed8;font-weight:700;">
+            {{ musteri.ad[0] }}{{ musteri.soyad[0] }}
+          </div>
+          <div>
+            <div class="fw-bold" style="font-size:1.05rem;">{{ musteri.ad }} {{ musteri.soyad }}</div>
+            <div class="text-muted" style="font-size:.8rem;">Müşteri #{{ musteri.id }}</div>
+          </div>
+        </div>
+
+        {% macro info_row(icon, label, value) %}
+          {% if value %}
+          <div class="d-flex gap-2 mb-2" style="font-size:.88rem;">
+            <i class="bi bi-{{ icon }} text-muted mt-1" style="width:16px;"></i>
+            <div>
+              <div class="text-muted" style="font-size:.75rem;">{{ label }}</div>
+              <div>{{ value }}</div>
+            </div>
+          </div>
+          {% endif %}
+        {% endmacro %}
+
+        {{ info_row('telephone', 'Telefon', musteri.telefon) }}
+        {{ info_row('envelope', 'E-posta', musteri.email) }}
+        {{ info_row('calendar-plus', 'Kayıt Tarihi', musteri.created_at | tarih) }}
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header px-4 py-3">
+        <i class="bi bi-cash-coin me-2 text-success"></i>Bütçe
+      </div>
+      <div class="card-body px-4 py-3">
+        {% if musteri.butce_min or musteri.butce_max %}
+          <div class="fw-bold text-success" style="font-size:1.1rem;">
+            {{ musteri.butce_min | para if musteri.butce_min else '' }}
+            {% if musteri.butce_min and musteri.butce_max %} – {% endif %}
+            {{ musteri.butce_max | para if musteri.butce_max else '' }}
+          </div>
+        {% else %}
+          <span class="text-muted">Bütçe bilgisi girilmemiş</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if musteri.ilgi_alanlari %}
+    <div class="card mb-3">
+      <div class="card-header px-4 py-3">
+        <i class="bi bi-bookmark-heart me-2 text-warning"></i>İlgi Alanları
+      </div>
+      <div class="card-body px-4 py-3" style="font-size:.9rem;white-space:pre-line;">{{ musteri.ilgi_alanlari }}</div>
+    </div>
+    {% endif %}
+
+    {% if musteri.notlar %}
+    <div class="card">
+      <div class="card-header px-4 py-3">
+        <i class="bi bi-sticky me-2 text-warning"></i>Notlar
+      </div>
+      <div class="card-body px-4 py-3" style="font-size:.9rem;white-space:pre-line;">{{ musteri.notlar }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Sağ kolon: Randevular + İlanlar -->
+  <div class="col-lg-8">
+
+    <!-- Hızlı randevu ekle -->
+    <div class="d-flex justify-content-end mb-2">
+      <a href="{{ url_for('randevu_ekle') }}?musteri_id={{ musteri.id }}" class="btn btn-sm btn-primary">
+        <i class="bi bi-calendar-plus me-1"></i> Randevu Ekle
+      </a>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-3" id="detayTab">
+      <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#tab-randevular">
+          <i class="bi bi-calendar3 me-1"></i>Randevular
+          {% if randevular %}<span class="badge bg-secondary ms-1" style="font-size:.7rem;">{{ randevular | length }}</span>{% endif %}
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#tab-ilanlar">
+          <i class="bi bi-house me-1"></i>İlgilenilen İlanlar
+          {% if ilgili_ilanlar %}<span class="badge bg-secondary ms-1" style="font-size:.7rem;">{{ ilgili_ilanlar | length }}</span>{% endif %}
+        </a>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+      <!-- Randevular Tab -->
+      <div class="tab-pane fade show active" id="tab-randevular">
+        <div class="card">
+          <div class="card-body p-0">
+            {% if randevular %}
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th class="ps-4">Tarih</th>
+                  <th>Saat</th>
+                  <th>Konu / İlan</th>
+                  <th>Durum</th>
+                  <th class="text-end pe-4">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in randevular %}
+                <tr>
+                  <td class="ps-4 fw-semibold">{{ r.tarih | tarih }}</td>
+                  <td>{{ r.saat or '—' }}</td>
+                  <td style="font-size:.87rem;">
+                    {% if r.konu %}<div>{{ r.konu }}</div>{% endif %}
+                    {% if r.ilan_baslik %}<div class="text-muted">{{ r.ilan_baslik }}</div>{% endif %}
+                    {% if not r.konu and not r.ilan_baslik %}—{% endif %}
+                  </td>
+                  <td><span class="bd bd-{{ r.durum }}">{{ r.durum }}</span></td>
+                  <td class="text-end pe-4">
+                    <a href="{{ url_for('randevu_duzenle', id=r.id) }}" class="btn btn-sm btn-outline-primary me-1">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                    <form method="post" action="{{ url_for('randevu_sil', id=r.id) }}" class="d-inline">
+                      <button type="button" class="btn btn-sm btn-outline-danger delete-confirm"
+                              data-confirm="Bu randevuyu silmek istiyor musunuz?">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="text-center text-muted py-4">
+              <i class="bi bi-calendar-x" style="font-size:2rem;opacity:.3;"></i>
+              <p class="mt-2 mb-0" style="font-size:.88rem;">Randevu kaydı yok</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- İlanlar Tab -->
+      <div class="tab-pane fade" id="tab-ilanlar">
+        <!-- Yeni ilan bağlama formu -->
+        {% if tum_ilanlar %}
+        <div class="card mb-3">
+          <div class="card-header px-4 py-2" style="font-size:.88rem;">
+            <i class="bi bi-plus-circle me-1 text-success"></i>İlan Bağla
+          </div>
+          <div class="card-body px-4 py-3">
+            <form method="post" action="{{ url_for('musteri_ilan_ekle', musteri_id=musteri.id) }}" class="row g-2 align-items-end">
+              <div class="col-sm-5">
+                <label class="form-label form-label-sm">İlan Seç</label>
+                <select name="ilan_id" class="form-select form-select-sm" required>
+                  <option value="">— İlan seçin —</option>
+                  {% for i in tum_ilanlar %}
+                    <option value="{{ i.id }}">{{ i.baslik }} {% if i.sehir %}({{ i.sehir }}){% endif %}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="form-label form-label-sm">İlgi Düzeyi</label>
+                <select name="ilgi_durumu" class="form-select form-select-sm">
+                  <option value="ilgileniyor">İlgileniyor</option>
+                  <option value="cok_ilgileniyor">Çok İlgileniyor</option>
+                  <option value="degil">İlgilenmiyor</option>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="form-label form-label-sm">Not</label>
+                <input type="text" name="notlar" class="form-control form-control-sm" placeholder="İsteğe bağlı">
+              </div>
+              <div class="col-sm-1">
+                <button type="submit" class="btn btn-success btn-sm w-100"><i class="bi bi-plus"></i></button>
+              </div>
+            </form>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+          <div class="card-body p-0">
+            {% if ilgili_ilanlar %}
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th class="ps-4">İlan</th>
+                  <th>Fiyat</th>
+                  <th>İlgi</th>
+                  <th>Not</th>
+                  <th class="text-end pe-4">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for mi in ilgili_ilanlar %}
+                <tr>
+                  <td class="ps-4">
+                    <a href="{{ url_for('ilan_detay', id=mi.ilan_id) }}" class="text-decoration-none fw-semibold">
+                      {{ mi.baslik }}
+                    </a>
+                    {% if mi.sehir %}
+                    <div class="text-muted" style="font-size:.8rem;">{{ mi.sehir }}</div>
+                    {% endif %}
+                    <span class="bd bd-{{ mi.ilan_durum }}" style="font-size:.72rem;">{{ mi.ilan_durum }}</span>
+                  </td>
+                  <td class="text-success fw-semibold" style="font-size:.88rem;">{{ mi.fiyat | para }}</td>
+                  <td><span class="bd bd-{{ mi.ilgi_durumu }}" style="font-size:.75rem;">{{ mi.ilgi_durumu | replace('_', ' ') }}</span></td>
+                  <td style="font-size:.83rem;color:#6c757d;">{{ mi.notlar or '—' }}</td>
+                  <td class="text-end pe-4">
+                    <form method="post" action="{{ url_for('musteri_ilan_sil', id=mi.id) }}" class="d-inline">
+                      <button type="button" class="btn btn-sm btn-outline-danger delete-confirm"
+                              data-confirm="Bu ilan bağlantısını kaldırmak istiyor musunuz?">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="text-center text-muted py-4">
+              <i class="bi bi-house-x" style="font-size:2rem;opacity:.3;"></i>
+              <p class="mt-2 mb-0" style="font-size:.88rem;">Bağlı ilan yok</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

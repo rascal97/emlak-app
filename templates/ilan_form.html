@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}{{ baslik }}{% endblock %}
+{% block page_title %}{{ baslik }}{% endblock %}
+{% block page_sub %}İlan bilgilerini doldurun{% endblock %}
+
+{% block topbar_action %}
+  <a href="{{ url_for('ilanlar') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i> Geri
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9 col-xl-8">
+    <div class="card">
+      <div class="card-header px-4 py-3">
+        <i class="bi bi-house-add me-2 text-primary"></i>{{ baslik }}
+      </div>
+      <div class="card-body p-4">
+        <form method="post">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Başlık <span class="text-danger">*</span></label>
+              <input type="text" name="baslik" class="form-control"
+                     value="{{ ilan.baslik if ilan else '' }}"
+                     placeholder="Örn: Kadıköy Moda'da 3+1 Satılık Daire"
+                     required autofocus>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Tip</label>
+              <select name="tip" class="form-select">
+                <option value="satilik" {% if ilan and ilan.tip == 'satilik' %}selected{% elif not ilan %}selected{% endif %}>Satılık</option>
+                <option value="kiralik" {% if ilan and ilan.tip == 'kiralik' %}selected{% endif %}>Kiralık</option>
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Kategori</label>
+              <select name="kategori" class="form-select">
+                {% set cats = ['daire', 'villa', 'arsa', 'is_yeri', 'dukkan', 'depo', 'bina'] %}
+                {% set labels = {'daire':'Daire','villa':'Villa','arsa':'Arsa','is_yeri':'İş Yeri','dukkan':'Dükkan','depo':'Depo','bina':'Bina'} %}
+                {% for c in cats %}
+                  <option value="{{ c }}" {% if ilan and ilan.kategori == c %}selected{% elif not ilan and c == 'daire' %}selected{% endif %}>
+                    {{ labels[c] }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Şehir</label>
+              <input type="text" name="sehir" class="form-control"
+                     value="{{ ilan.sehir if ilan else '' }}"
+                     placeholder="İstanbul">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">İlçe</label>
+              <input type="text" name="ilce" class="form-control"
+                     value="{{ ilan.ilce if ilan else '' }}"
+                     placeholder="Kadıköy">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Adres</label>
+              <input type="text" name="adres" class="form-control"
+                     value="{{ ilan.adres if ilan else '' }}"
+                     placeholder="Sokak, mahalle vb.">
+            </div>
+
+            <div class="col-12"><hr class="my-1"></div>
+
+            <div class="col-sm-4">
+              <label class="form-label fw-semibold">Fiyat (₺)</label>
+              <input type="number" name="fiyat" class="form-control"
+                     value="{{ ilan.fiyat if ilan and ilan.fiyat else '' }}"
+                     placeholder="1500000" min="0" step="1000">
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label fw-semibold">Metrekare (m²)</label>
+              <input type="number" name="metrekare" class="form-control"
+                     value="{{ ilan.metrekare if ilan and ilan.metrekare else '' }}"
+                     placeholder="120" min="0" step="1">
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label fw-semibold">Oda Sayısı</label>
+              <select name="oda_sayisi" class="form-select">
+                <option value="">—</option>
+                {% for oda in ['Stüdyo','1+0','1+1','2+1','3+1','4+1','5+1','6+1','7+ Oda'] %}
+                  <option value="{{ oda }}" {% if ilan and ilan.oda_sayisi == oda %}selected{% endif %}>{{ oda }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Durum</label>
+              <select name="durum" class="form-select">
+                <option value="aktif"     {% if ilan and ilan.durum == 'aktif'     %}selected{% elif not ilan %}selected{% endif %}>Aktif</option>
+                <option value="satildi"   {% if ilan and ilan.durum == 'satildi'   %}selected{% endif %}>Satıldı</option>
+                <option value="kiralandı" {% if ilan and ilan.durum == 'kiralandı' %}selected{% endif %}>Kiralandı</option>
+                <option value="pasif"     {% if ilan and ilan.durum == 'pasif'     %}selected{% endif %}>Pasif</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Açıklama</label>
+              <textarea name="aciklama" class="form-control" rows="4"
+                        placeholder="İlan hakkında detaylı bilgi, özellikler, notlar…">{{ ilan.aciklama if ilan else '' }}</textarea>
+            </div>
+
+            <div class="col-12 d-flex gap-2 mt-2">
+              <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-check-lg me-1"></i>
+                {{ 'Güncelle' if ilan else 'Kaydet' }}
+              </button>
+              <a href="{{ url_for('ilanlar') }}" class="btn btn-outline-secondary px-3">İptal</a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

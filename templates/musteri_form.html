@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}{{ baslik }}{% endblock %}
+{% block page_title %}{{ baslik }}{% endblock %}
+{% block page_sub %}Müşteri bilgilerini doldurun{% endblock %}
+
+{% block topbar_action %}
+  <a href="{{ url_for('musteriler') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i> Geri
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8 col-xl-7">
+    <div class="card">
+      <div class="card-header px-4 py-3">
+        <i class="bi bi-person-fill me-2 text-primary"></i>{{ baslik }}
+      </div>
+      <div class="card-body p-4">
+        <form method="post">
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Ad <span class="text-danger">*</span></label>
+              <input type="text" name="ad" class="form-control"
+                     value="{{ musteri.ad if musteri else '' }}" required autofocus>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Soyad <span class="text-danger">*</span></label>
+              <input type="text" name="soyad" class="form-control"
+                     value="{{ musteri.soyad if musteri else '' }}" required>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Telefon</label>
+              <input type="tel" name="telefon" class="form-control"
+                     value="{{ musteri.telefon if musteri else '' }}"
+                     placeholder="05xx xxx xx xx">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">E-posta</label>
+              <input type="email" name="email" class="form-control"
+                     value="{{ musteri.email if musteri else '' }}"
+                     placeholder="ornek@mail.com">
+            </div>
+
+            <div class="col-12">
+              <hr class="my-1">
+              <p class="fw-semibold mb-0" style="font-size:.9rem;">Bütçe Bilgisi</p>
+              <p class="text-muted mb-2" style="font-size:.78rem;">Türk Lirası (₺) cinsinden giriniz</p>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label">Minimum Bütçe (₺)</label>
+              <input type="number" name="butce_min" class="form-control"
+                     value="{{ musteri.butce_min if musteri and musteri.butce_min else '' }}"
+                     placeholder="500000" min="0" step="1000">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label">Maksimum Bütçe (₺)</label>
+              <input type="number" name="butce_max" class="form-control"
+                     value="{{ musteri.butce_max if musteri and musteri.butce_max else '' }}"
+                     placeholder="2000000" min="0" step="1000">
+            </div>
+
+            <div class="col-12">
+              <hr class="my-1">
+              <p class="fw-semibold mb-2" style="font-size:.9rem;">İlgi Alanları & Notlar</p>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">İlgi Alanları</label>
+              <textarea name="ilgi_alanlari" class="form-control" rows="2"
+                        placeholder="Örn: Kadıköy veya Üsküdar, 2+1 daire, satılık, maks. 3. kat…">{{ musteri.ilgi_alanlari if musteri else '' }}</textarea>
+              <div class="form-text">Müşterinin tercih ettiği bölge, tip, özellikler vb.</div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Özel Notlar</label>
+              <textarea name="notlar" class="form-control" rows="3"
+                        placeholder="Müşteri hakkında hatırlamak istediğiniz notlar…">{{ musteri.notlar if musteri else '' }}</textarea>
+            </div>
+
+            <div class="col-12 d-flex gap-2 mt-2">
+              <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-check-lg me-1"></i>
+                {{ 'Güncelle' if musteri else 'Kaydet' }}
+              </button>
+              <a href="{{ url_for('musteriler') }}" class="btn btn-outline-secondary px-3">İptal</a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

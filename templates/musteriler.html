@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Müşteriler{% endblock %}
+{% block page_title %}Müşteriler{% endblock %}
+{% block page_sub %}Tüm müşteri listesi{% endblock %}
+
+{% block topbar_action %}
+  <a href="{{ url_for('musteri_ekle') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-person-plus-fill me-1"></i> Yeni Müşteri
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Arama -->
+<form method="get" class="mb-3 d-flex gap-2" style="max-width:420px;">
+  <input type="text" name="arama" value="{{ arama }}" class="form-control form-control-sm"
+         placeholder="Ad, soyad, telefon veya e-posta ara…">
+  <button class="btn btn-outline-primary btn-sm"><i class="bi bi-search"></i></button>
+  {% if arama %}
+    <a href="{{ url_for('musteriler') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-x"></i>
+    </a>
+  {% endif %}
+</form>
+
+<div class="card">
+  <div class="card-header px-4 py-3 d-flex justify-content-between align-items-center">
+    <span>{{ musteriler | length }} müşteri</span>
+  </div>
+  <div class="card-body p-0">
+    {% if musteriler %}
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th class="ps-4">Ad Soyad</th>
+          <th>Telefon</th>
+          <th>E-posta</th>
+          <th>Bütçe Aralığı</th>
+          <th>İlgi Alanları</th>
+          <th class="text-end pe-4">İşlemler</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in musteriler %}
+        <tr>
+          <td class="ps-4 fw-semibold">
+            <a href="{{ url_for('musteri_detay', id=m.id) }}" class="text-decoration-none text-dark">
+              {{ m.ad }} {{ m.soyad }}
+            </a>
+          </td>
+          <td class="text-muted">{{ m.telefon or '—' }}</td>
+          <td class="text-muted" style="font-size:.85rem;">{{ m.email or '—' }}</td>
+          <td style="font-size:.85rem;">
+            {% if m.butce_min or m.butce_max %}
+              <span class="text-success fw-semibold">
+                {{ m.butce_min | para if m.butce_min else '' }}
+                {% if m.butce_min and m.butce_max %} – {% endif %}
+                {{ m.butce_max | para if m.butce_max else '' }}
+              </span>
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-size:.83rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            {{ m.ilgi_alanlari or '—' }}
+          </td>
+          <td class="text-end pe-4">
+            <a href="{{ url_for('musteri_detay', id=m.id) }}" class="btn btn-sm btn-outline-secondary me-1" title="Detay">
+              <i class="bi bi-eye"></i>
+            </a>
+            <a href="{{ url_for('musteri_duzenle', id=m.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Düzenle">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <form method="post" action="{{ url_for('musteri_sil', id=m.id) }}" class="d-inline">
+              <button type="button" class="btn btn-sm btn-outline-danger delete-confirm"
+                      data-confirm="{{ m.ad }} {{ m.soyad }} adlı müşteriyi silmek istiyor musunuz?">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-person-x" style="font-size:3rem;opacity:.25;"></i>
+      <p class="mt-3 mb-1 fw-semibold">Müşteri bulunamadı</p>
+      {% if arama %}
+        <p style="font-size:.85rem;">"{{ arama }}" için sonuç yok.</p>
+        <a href="{{ url_for('musteriler') }}" class="btn btn-outline-secondary btn-sm">Aramayı Temizle</a>
+      {% else %}
+        <a href="{{ url_for('musteri_ekle') }}" class="btn btn-primary btn-sm mt-1">İlk müşteriyi ekle</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
