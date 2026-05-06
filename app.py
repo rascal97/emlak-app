@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, g
-import psycopg2
-import psycopg2.extras
-import psycopg2.errors
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+import psycopg2, psycopg2.extras, psycopg2.errors
 import os
 from datetime import datetime
 
@@ -9,13 +9,39 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'emlak_pro_gizli_2024')
 
 _DB_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost/emlak')
-# Railway'in postgres:// prefix'ini psycopg2'nin beklediği postgresql:// ile değiştir
 if _DB_URL.startswith('postgres://'):
     _DB_URL = _DB_URL.replace('postgres://', 'postgresql://', 1)
 
+# ── Flask-Login ────────────────────────────────────────────────────────────
+
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Bu sayfaya erişmek için giriş yapmalısınız.'
+login_manager.login_message_category = 'warning'
+
+
+class User(UserMixin):
+    def __init__(self, id, kullanici_adi, email):
+        self.id = id
+        self.kullanici_adi = kullanici_adi
+        self.email = email
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    try:
+        db = get_db()
+        u = db.execute('SELECT * FROM kullanicilar WHERE id=%s', (int(user_id),)).fetchone()
+        if u is None:
+            return None
+        return User(u['id'], u['kullanici_adi'], u['email'])
+    except Exception:
+        return None
+
+
+# ── Veritabanı bağlantısı ──────────────────────────────────────────────────
 
 class _Conn:
-    """sqlite3 benzeri arayüz sağlayan psycopg2 wrapper'ı."""
     def __init__(self, raw):
         self._raw = raw
 
@@ -45,23 +71,34 @@ def close_connection(exception):
         db.close()
 
 
+# ── Veritabanı başlatma ────────────────────────────────────────────────────
+
 def init_db():
     db = get_db()
     for stmt in [
+        """CREATE TABLE IF NOT EXISTS kullanicilar (
+            id           SERIAL PRIMARY KEY,
+            kullanici_adi TEXT NOT NULL UNIQUE,
+            email        TEXT UNIQUE,
+            sifre_hash   TEXT NOT NULL,
+            created_at   TIMESTAMP DEFAULT NOW()
+        )""",
         """CREATE TABLE IF NOT EXISTS musteriler (
-            id          SERIAL PRIMARY KEY,
-            ad          TEXT NOT NULL,
-            soyad       TEXT NOT NULL,
-            telefon     TEXT,
-            email       TEXT,
-            butce_min   REAL,
-            butce_max   REAL,
+            id            SERIAL PRIMARY KEY,
+            user_id       INTEGER REFERENCES kullanicilar(id) ON DELETE CASCADE,
+            ad            TEXT NOT NULL,
+            soyad         TEXT NOT NULL,
+            telefon       TEXT,
+            email         TEXT,
+            butce_min     REAL,
+            butce_max     REAL,
             ilgi_alanlari TEXT,
-            notlar      TEXT,
-            created_at  TIMESTAMP DEFAULT NOW()
+            notlar        TEXT,
+            created_at    TIMESTAMP DEFAULT NOW()
         )""",
         """CREATE TABLE IF NOT EXISTS ilanlar (
             id          SERIAL PRIMARY KEY,
+            user_id     INTEGER REFERENCES kullanicilar(id) ON DELETE CASCADE,
             baslik      TEXT NOT NULL,
             adres       TEXT,
             sehir       TEXT,
@@ -77,8 +114,9 @@ def init_db():
         )""",
         """CREATE TABLE IF NOT EXISTS randevular (
             id          SERIAL PRIMARY KEY,
+            user_id     INTEGER REFERENCES kullanicilar(id) ON DELETE CASCADE,
             musteri_id  INTEGER REFERENCES musteriler(id) ON DELETE SET NULL,
-            ilan_id     INTEGER REFERENCES ilanlar(id)    ON DELETE SET NULL,
+            ilan_id     INTEGER REFERENCES ilanlar(id) ON DELETE SET NULL,
             tarih       DATE NOT NULL,
             saat        TIME,
             konu        TEXT,
@@ -97,15 +135,95 @@ def init_db():
         )""",
     ]:
         db.execute(stmt)
+
+    # Var olan tablolara user_id sütunu ekle (migration)
+    for alter in [
+        "ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES kullanicilar(id) ON DELETE CASCADE",
+        "ALTER TABLE ilanlar    ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES kullanicilar(id) ON DELETE CASCADE",
+        "ALTER TABLE randevular ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES kullanicilar(id) ON DELETE CASCADE",
+    ]:
+        try:
+            db.execute(alter)
+        except Exception:
+            db.rollback()
+
     db.commit()
 
 
-# Gunicorn module import'unda ve doğrudan çalıştırmada tabloları oluştur
 try:
     with app.app_context():
         init_db()
 except Exception as _e:
     print(f'[WARNING] init_db: {_e}', flush=True)
+
+
+# ── Yardımcı: sahiplik doğrulama ──────────────────────────────────────────
+
+def own(table, id):
+    """Kaydın current_user'a ait olup olmadığını döner."""
+    db = get_db()
+    return db.execute(f'SELECT * FROM {table} WHERE id=%s AND user_id=%s',
+                      (id, current_user.id)).fetchone()
+
+
+# ── Auth ───────────────────────────────────────────────────────────────────
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        kullanici_adi = request.form['kullanici_adi'].strip()
+        sifre         = request.form['sifre']
+        db = get_db()
+        u = db.execute('SELECT * FROM kullanicilar WHERE kullanici_adi=%s',
+                       (kullanici_adi,)).fetchone()
+        if u and check_password_hash(u['sifre_hash'], sifre):
+            login_user(User(u['id'], u['kullanici_adi'], u['email']), remember=True)
+            return redirect(request.args.get('next') or url_for('index'))
+        flash('Kullanıcı adı veya şifre hatalı.', 'danger')
+    return render_template('login.html')
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        kullanici_adi = request.form['kullanici_adi'].strip()
+        email         = request.form.get('email', '').strip()
+        sifre         = request.form['sifre']
+        sifre2        = request.form['sifre2']
+
+        if not kullanici_adi or not sifre:
+            flash('Kullanıcı adı ve şifre zorunludur.', 'danger')
+            return render_template('register.html')
+        if sifre != sifre2:
+            flash('Şifreler eşleşmiyor.', 'danger')
+            return render_template('register.html')
+        if len(sifre) < 6:
+            flash('Şifre en az 6 karakter olmalıdır.', 'danger')
+            return render_template('register.html')
+
+        db = get_db()
+        if db.execute('SELECT id FROM kullanicilar WHERE kullanici_adi=%s', (kullanici_adi,)).fetchone():
+            flash('Bu kullanıcı adı zaten alınmış.', 'danger')
+            return render_template('register.html')
+
+        db.execute('INSERT INTO kullanicilar (kullanici_adi, email, sifre_hash) VALUES (%s,%s,%s)',
+                   (kullanici_adi, email or None, generate_password_hash(sifre)))
+        db.commit()
+        flash('Hesap oluşturuldu! Giriş yapabilirsiniz.', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Çıkış yapıldı.', 'info')
+    return redirect(url_for('login'))
 
 
 # ── PWA ────────────────────────────────────────────────────────────────────
@@ -117,6 +235,7 @@ def service_worker():
     resp.headers['Service-Worker-Allowed'] = '/'
     return resp
 
+
 @app.route('/offline')
 def offline():
     return render_template('offline.html')
@@ -125,27 +244,28 @@ def offline():
 # ── Dashboard ──────────────────────────────────────────────────────────────
 
 @app.route('/')
+@login_required
 def index():
-    db = get_db()
+    db  = get_db()
+    uid = current_user.id
     stats = {
-        'musteri_sayisi':   db.execute('SELECT COUNT(*) FROM musteriler').fetchone()[0],
-        'ilan_sayisi':      db.execute('SELECT COUNT(*) FROM ilanlar').fetchone()[0],
-        'aktif_ilan':       db.execute("SELECT COUNT(*) FROM ilanlar WHERE durum='aktif'").fetchone()[0],
+        'musteri_sayisi':   db.execute('SELECT COUNT(*) FROM musteriler WHERE user_id=%s', (uid,)).fetchone()[0],
+        'ilan_sayisi':      db.execute('SELECT COUNT(*) FROM ilanlar WHERE user_id=%s', (uid,)).fetchone()[0],
+        'aktif_ilan':       db.execute("SELECT COUNT(*) FROM ilanlar WHERE user_id=%s AND durum='aktif'", (uid,)).fetchone()[0],
         'yaklasan_randevu': db.execute(
-            "SELECT COUNT(*) FROM randevular WHERE tarih >= CURRENT_DATE AND durum='planlandı'"
+            "SELECT COUNT(*) FROM randevular WHERE user_id=%s AND tarih>=CURRENT_DATE AND durum='planlandı'", (uid,)
         ).fetchone()[0],
     }
     yaklasan_randevular = db.execute('''
-        SELECT r.*, m.ad || ' ' || m.soyad AS musteri_adi, i.baslik AS ilan_baslik
+        SELECT r.*, m.ad||' '||m.soyad AS musteri_adi, i.baslik AS ilan_baslik
         FROM randevular r
-        LEFT JOIN musteriler m ON r.musteri_id = m.id
-        LEFT JOIN ilanlar    i ON r.ilan_id    = i.id
-        WHERE r.tarih >= CURRENT_DATE AND r.durum = 'planlandı'
-        ORDER BY r.tarih, r.saat
-        LIMIT 6
-    ''').fetchall()
+        LEFT JOIN musteriler m ON r.musteri_id=m.id
+        LEFT JOIN ilanlar    i ON r.ilan_id=i.id
+        WHERE r.user_id=%s AND r.tarih>=CURRENT_DATE AND r.durum='planlandı'
+        ORDER BY r.tarih, r.saat LIMIT 6
+    ''', (uid,)).fetchall()
     son_musteriler = db.execute(
-        'SELECT * FROM musteriler ORDER BY created_at DESC LIMIT 6'
+        'SELECT * FROM musteriler WHERE user_id=%s ORDER BY created_at DESC LIMIT 6', (uid,)
     ).fetchall()
     return render_template('index.html', stats=stats,
                            yaklasan_randevular=yaklasan_randevular,
@@ -155,150 +275,154 @@ def index():
 # ── Müşteriler ─────────────────────────────────────────────────────────────
 
 @app.route('/musteriler')
+@login_required
 def musteriler():
-    db = get_db()
+    db  = get_db()
+    uid = current_user.id
     arama = request.args.get('arama', '').strip()
     if arama:
         liste = db.execute('''
             SELECT * FROM musteriler
-            WHERE ad ILIKE %s OR soyad ILIKE %s OR telefon ILIKE %s OR email ILIKE %s
+            WHERE user_id=%s AND (ad ILIKE %s OR soyad ILIKE %s OR telefon ILIKE %s OR email ILIKE %s)
             ORDER BY created_at DESC
-        ''', tuple(f'%{arama}%' for _ in range(4))).fetchall()
+        ''', (uid, *[f'%{arama}%']*4)).fetchall()
     else:
-        liste = db.execute('SELECT * FROM musteriler ORDER BY created_at DESC').fetchall()
+        liste = db.execute('SELECT * FROM musteriler WHERE user_id=%s ORDER BY created_at DESC', (uid,)).fetchall()
     return render_template('musteriler.html', musteriler=liste, arama=arama)
 
 
 @app.route('/musteriler/ekle', methods=['GET', 'POST'])
+@login_required
 def musteri_ekle():
     if request.method == 'POST':
-        ad = request.form['ad'].strip()
+        ad    = request.form['ad'].strip()
         soyad = request.form['soyad'].strip()
         if not ad or not soyad:
             flash('Ad ve soyad zorunludur.', 'danger')
-            return render_template('musteri_form.html', musteri=None, baslik='Yeni Müşteri Ekle')
+            return render_template('musteri_form.html', musteri=None, baslik='Yeni Müşteri')
         db = get_db()
         db.execute('''
-            INSERT INTO musteriler (ad, soyad, telefon, email, butce_min, butce_max, ilgi_alanlari, notlar)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (
-            ad, soyad,
-            request.form.get('telefon', '').strip(),
-            request.form.get('email', '').strip(),
-            request.form.get('butce_min') or None,
-            request.form.get('butce_max') or None,
-            request.form.get('ilgi_alanlari', '').strip(),
-            request.form.get('notlar', '').strip(),
-        ))
+            INSERT INTO musteriler (user_id,ad,soyad,telefon,email,butce_min,butce_max,ilgi_alanlari,notlar)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        ''', (current_user.id, ad, soyad,
+              request.form.get('telefon','').strip(),
+              request.form.get('email','').strip(),
+              request.form.get('butce_min') or None,
+              request.form.get('butce_max') or None,
+              request.form.get('ilgi_alanlari','').strip(),
+              request.form.get('notlar','').strip()))
         db.commit()
-        flash(f'{ad} {soyad} başarıyla eklendi.', 'success')
+        flash(f'{ad} {soyad} eklendi.', 'success')
         return redirect(url_for('musteriler'))
-    return render_template('musteri_form.html', musteri=None, baslik='Yeni Müşteri Ekle')
+    return render_template('musteri_form.html', musteri=None, baslik='Yeni Müşteri')
 
 
 @app.route('/musteriler/<int:id>')
+@login_required
 def musteri_detay(id):
     db = get_db()
-    musteri = db.execute('SELECT * FROM musteriler WHERE id=%s', (id,)).fetchone()
+    musteri = own('musteriler', id)
     if not musteri:
-        flash('Müşteri bulunamadı.', 'danger')
+        flash('Kayıt bulunamadı.', 'danger')
         return redirect(url_for('musteriler'))
     randevular = db.execute('''
-        SELECT r.*, i.baslik AS ilan_baslik
-        FROM randevular r
-        LEFT JOIN ilanlar i ON r.ilan_id = i.id
-        WHERE r.musteri_id = %s
-        ORDER BY r.tarih DESC, r.saat DESC
-    ''', (id,)).fetchall()
+        SELECT r.*, i.baslik AS ilan_baslik FROM randevular r
+        LEFT JOIN ilanlar i ON r.ilan_id=i.id
+        WHERE r.musteri_id=%s AND r.user_id=%s ORDER BY r.tarih DESC
+    ''', (id, current_user.id)).fetchall()
     ilgili_ilanlar = db.execute('''
         SELECT mi.*, i.baslik, i.adres, i.sehir, i.fiyat, i.tip, i.kategori, i.durum AS ilan_durum
-        FROM musteri_ilan mi
-        JOIN ilanlar i ON mi.ilan_id = i.id
-        WHERE mi.musteri_id = %s
-        ORDER BY mi.created_at DESC
+        FROM musteri_ilan mi JOIN ilanlar i ON mi.ilan_id=i.id
+        WHERE mi.musteri_id=%s ORDER BY mi.created_at DESC
     ''', (id,)).fetchall()
     tum_ilanlar = db.execute('''
         SELECT * FROM ilanlar
-        WHERE id NOT IN (SELECT ilan_id FROM musteri_ilan WHERE musteri_id=%s)
+        WHERE user_id=%s AND id NOT IN (SELECT ilan_id FROM musteri_ilan WHERE musteri_id=%s)
         ORDER BY created_at DESC
-    ''', (id,)).fetchall()
+    ''', (current_user.id, id)).fetchall()
     return render_template('musteri_detay.html', musteri=musteri, randevular=randevular,
                            ilgili_ilanlar=ilgili_ilanlar, tum_ilanlar=tum_ilanlar)
 
 
 @app.route('/musteriler/<int:id>/duzenle', methods=['GET', 'POST'])
+@login_required
 def musteri_duzenle(id):
     db = get_db()
-    musteri = db.execute('SELECT * FROM musteriler WHERE id=%s', (id,)).fetchone()
+    musteri = own('musteriler', id)
     if not musteri:
-        flash('Müşteri bulunamadı.', 'danger')
+        flash('Kayıt bulunamadı.', 'danger')
         return redirect(url_for('musteriler'))
     if request.method == 'POST':
-        ad = request.form['ad'].strip()
+        ad    = request.form['ad'].strip()
         soyad = request.form['soyad'].strip()
         if not ad or not soyad:
             flash('Ad ve soyad zorunludur.', 'danger')
             return render_template('musteri_form.html', musteri=musteri, baslik='Müşteri Düzenle')
         db.execute('''
-            UPDATE musteriler SET ad=%s, soyad=%s, telefon=%s, email=%s,
-            butce_min=%s, butce_max=%s, ilgi_alanlari=%s, notlar=%s
-            WHERE id=%s
-        ''', (
-            ad, soyad,
-            request.form.get('telefon', '').strip(),
-            request.form.get('email', '').strip(),
-            request.form.get('butce_min') or None,
-            request.form.get('butce_max') or None,
-            request.form.get('ilgi_alanlari', '').strip(),
-            request.form.get('notlar', '').strip(),
-            id,
-        ))
+            UPDATE musteriler SET ad=%s,soyad=%s,telefon=%s,email=%s,
+            butce_min=%s,butce_max=%s,ilgi_alanlari=%s,notlar=%s WHERE id=%s AND user_id=%s
+        ''', (ad, soyad,
+              request.form.get('telefon','').strip(),
+              request.form.get('email','').strip(),
+              request.form.get('butce_min') or None,
+              request.form.get('butce_max') or None,
+              request.form.get('ilgi_alanlari','').strip(),
+              request.form.get('notlar','').strip(),
+              id, current_user.id))
         db.commit()
-        flash(f'{ad} {soyad} güncellendi.', 'success')
+        flash('Güncellendi.', 'success')
         return redirect(url_for('musteri_detay', id=id))
     return render_template('musteri_form.html', musteri=musteri, baslik='Müşteri Düzenle')
 
 
 @app.route('/musteriler/<int:id>/sil', methods=['POST'])
+@login_required
 def musteri_sil(id):
     db = get_db()
-    musteri = db.execute('SELECT * FROM musteriler WHERE id=%s', (id,)).fetchone()
-    if musteri:
-        db.execute('DELETE FROM musteriler WHERE id=%s', (id,))
+    m = own('musteriler', id)
+    if m:
+        db.execute('DELETE FROM musteriler WHERE id=%s AND user_id=%s', (id, current_user.id))
         db.commit()
-        flash(f'{musteri["ad"]} {musteri["soyad"]} silindi.', 'success')
+        flash(f'{m["ad"]} {m["soyad"]} silindi.', 'success')
     return redirect(url_for('musteriler'))
 
 
 @app.route('/musteriler/<int:musteri_id>/ilan-ekle', methods=['POST'])
+@login_required
 def musteri_ilan_ekle(musteri_id):
+    if not own('musteriler', musteri_id):
+        flash('Erişim izni yok.', 'danger')
+        return redirect(url_for('musteriler'))
     ilan_id = request.form.get('ilan_id')
     if ilan_id:
         db = get_db()
         try:
-            db.execute('''
-                INSERT INTO musteri_ilan (musteri_id, ilan_id, ilgi_durumu, notlar)
-                VALUES (%s, %s, %s, %s)
-            ''', (musteri_id, ilan_id,
-                  request.form.get('ilgi_durumu', 'ilgileniyor'),
-                  request.form.get('notlar', '').strip()))
+            db.execute('INSERT INTO musteri_ilan (musteri_id,ilan_id,ilgi_durumu,notlar) VALUES (%s,%s,%s,%s)',
+                       (musteri_id, ilan_id,
+                        request.form.get('ilgi_durumu','ilgileniyor'),
+                        request.form.get('notlar','').strip()))
             db.commit()
-            flash('İlan müşteriye bağlandı.', 'success')
+            flash('İlan bağlandı.', 'success')
         except psycopg2.errors.UniqueViolation:
             db.rollback()
-            flash('Bu ilan zaten müşteriye bağlı.', 'warning')
+            flash('Bu ilan zaten bağlı.', 'warning')
     return redirect(url_for('musteri_detay', id=musteri_id))
 
 
 @app.route('/musteri-ilan/<int:id>/sil', methods=['POST'])
+@login_required
 def musteri_ilan_sil(id):
     db = get_db()
-    mi = db.execute('SELECT * FROM musteri_ilan WHERE id=%s', (id,)).fetchone()
+    mi = db.execute('''
+        SELECT mi.* FROM musteri_ilan mi
+        JOIN musteriler m ON mi.musteri_id=m.id
+        WHERE mi.id=%s AND m.user_id=%s
+    ''', (id, current_user.id)).fetchone()
     if mi:
         musteri_id = mi['musteri_id']
         db.execute('DELETE FROM musteri_ilan WHERE id=%s', (id,))
         db.commit()
-        flash('İlan bağlantısı kaldırıldı.', 'success')
+        flash('Bağlantı kaldırıldı.', 'success')
         return redirect(url_for('musteri_detay', id=musteri_id))
     return redirect(url_for('musteriler'))
 
@@ -306,88 +430,82 @@ def musteri_ilan_sil(id):
 # ── İlanlar ────────────────────────────────────────────────────────────────
 
 @app.route('/ilanlar')
+@login_required
 def ilanlar():
-    db = get_db()
-    tip   = request.args.get('tip', '')
-    durum = request.args.get('durum', '')
-    arama = request.args.get('arama', '').strip()
-    query  = 'SELECT * FROM ilanlar WHERE 1=1'
-    params = []
-    if tip:
-        query += ' AND tip=%s';   params.append(tip)
-    if durum:
-        query += ' AND durum=%s'; params.append(durum)
+    db  = get_db()
+    uid = current_user.id
+    tip   = request.args.get('tip','')
+    durum = request.args.get('durum','')
+    arama = request.args.get('arama','').strip()
+    q, p = 'SELECT * FROM ilanlar WHERE user_id=%s', [uid]
+    if tip:   q += ' AND tip=%s';   p.append(tip)
+    if durum: q += ' AND durum=%s'; p.append(durum)
     if arama:
-        query += ' AND (baslik ILIKE %s OR adres ILIKE %s OR sehir ILIKE %s OR ilce ILIKE %s)'
-        params.extend([f'%{arama}%'] * 4)
-    query += ' ORDER BY created_at DESC'
-    liste = db.execute(query, params).fetchall()
+        q += ' AND (baslik ILIKE %s OR adres ILIKE %s OR sehir ILIKE %s OR ilce ILIKE %s)'
+        p.extend([f'%{arama}%']*4)
+    q += ' ORDER BY created_at DESC'
+    liste = db.execute(q, p).fetchall()
     return render_template('ilanlar.html', ilanlar=liste, tip=tip, durum=durum, arama=arama)
 
 
 @app.route('/ilanlar/ekle', methods=['GET', 'POST'])
+@login_required
 def ilan_ekle():
     if request.method == 'POST':
         baslik = request.form['baslik'].strip()
         if not baslik:
             flash('Başlık zorunludur.', 'danger')
-            return render_template('ilan_form.html', ilan=None, baslik='Yeni İlan Ekle')
+            return render_template('ilan_form.html', ilan=None, baslik='Yeni İlan')
         db = get_db()
         db.execute('''
-            INSERT INTO ilanlar
-              (baslik, adres, sehir, ilce, fiyat, tip, kategori, durum, metrekare, oda_sayisi, aciklama)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (
-            baslik,
-            request.form.get('adres', '').strip(),
-            request.form.get('sehir', '').strip(),
-            request.form.get('ilce', '').strip(),
-            request.form.get('fiyat') or None,
-            request.form.get('tip', 'satilik'),
-            request.form.get('kategori', 'daire'),
-            request.form.get('durum', 'aktif'),
-            request.form.get('metrekare') or None,
-            request.form.get('oda_sayisi', '').strip(),
-            request.form.get('aciklama', '').strip(),
-        ))
+            INSERT INTO ilanlar (user_id,baslik,adres,sehir,ilce,fiyat,tip,kategori,durum,metrekare,oda_sayisi,aciklama)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        ''', (current_user.id, baslik,
+              request.form.get('adres','').strip(),
+              request.form.get('sehir','').strip(),
+              request.form.get('ilce','').strip(),
+              request.form.get('fiyat') or None,
+              request.form.get('tip','satilik'),
+              request.form.get('kategori','daire'),
+              request.form.get('durum','aktif'),
+              request.form.get('metrekare') or None,
+              request.form.get('oda_sayisi','').strip(),
+              request.form.get('aciklama','').strip()))
         db.commit()
-        flash(f'"{baslik}" ilanı eklendi.', 'success')
+        flash(f'"{baslik}" eklendi.', 'success')
         return redirect(url_for('ilanlar'))
-    return render_template('ilan_form.html', ilan=None, baslik='Yeni İlan Ekle')
+    return render_template('ilan_form.html', ilan=None, baslik='Yeni İlan')
 
 
 @app.route('/ilanlar/<int:id>')
+@login_required
 def ilan_detay(id):
-    db = get_db()
-    ilan = db.execute('SELECT * FROM ilanlar WHERE id=%s', (id,)).fetchone()
+    db  = get_db()
+    ilan = own('ilanlar', id)
     if not ilan:
-        flash('İlan bulunamadı.', 'danger')
+        flash('Kayıt bulunamadı.', 'danger')
         return redirect(url_for('ilanlar'))
     ilgili_musteriler = db.execute('''
         SELECT mi.*, m.ad, m.soyad, m.telefon, m.butce_min, m.butce_max
-        FROM musteri_ilan mi
-        JOIN musteriler m ON mi.musteri_id = m.id
-        WHERE mi.ilan_id = %s
-        ORDER BY mi.created_at DESC
+        FROM musteri_ilan mi JOIN musteriler m ON mi.musteri_id=m.id
+        WHERE mi.ilan_id=%s ORDER BY mi.created_at DESC
     ''', (id,)).fetchall()
     randevular = db.execute('''
-        SELECT r.*, m.ad || ' ' || m.soyad AS musteri_adi
-        FROM randevular r
-        LEFT JOIN musteriler m ON r.musteri_id = m.id
-        WHERE r.ilan_id = %s
-        ORDER BY r.tarih DESC
-    ''', (id,)).fetchall()
+        SELECT r.*, m.ad||' '||m.soyad AS musteri_adi FROM randevular r
+        LEFT JOIN musteriler m ON r.musteri_id=m.id
+        WHERE r.ilan_id=%s AND r.user_id=%s ORDER BY r.tarih DESC
+    ''', (id, current_user.id)).fetchall()
     return render_template('ilan_detay.html', ilan=ilan,
-                           ilgili_musteriler=ilgili_musteriler,
-                           randevular=randevular)
+                           ilgili_musteriler=ilgili_musteriler, randevular=randevular)
 
 
 @app.route('/ilanlar/<int:id>/duzenle', methods=['GET', 'POST'])
+@login_required
 def ilan_duzenle(id):
-    db = get_db()
-    ilan = db.execute('SELECT * FROM ilanlar WHERE id=%s', (id,)).fetchone()
+    db  = get_db()
+    ilan = own('ilanlar', id)
     if not ilan:
-        flash('İlan bulunamadı.', 'danger')
+        flash('Kayıt bulunamadı.', 'danger')
         return redirect(url_for('ilanlar'))
     if request.method == 'POST':
         baslik = request.form['baslik'].strip()
@@ -395,136 +513,135 @@ def ilan_duzenle(id):
             flash('Başlık zorunludur.', 'danger')
             return render_template('ilan_form.html', ilan=ilan, baslik='İlan Düzenle')
         db.execute('''
-            UPDATE ilanlar SET baslik=%s, adres=%s, sehir=%s, ilce=%s, fiyat=%s,
-            tip=%s, kategori=%s, durum=%s, metrekare=%s, oda_sayisi=%s, aciklama=%s
-            WHERE id=%s
-        ''', (
-            baslik,
-            request.form.get('adres', '').strip(),
-            request.form.get('sehir', '').strip(),
-            request.form.get('ilce', '').strip(),
-            request.form.get('fiyat') or None,
-            request.form.get('tip', 'satilik'),
-            request.form.get('kategori', 'daire'),
-            request.form.get('durum', 'aktif'),
-            request.form.get('metrekare') or None,
-            request.form.get('oda_sayisi', '').strip(),
-            request.form.get('aciklama', '').strip(),
-            id,
-        ))
+            UPDATE ilanlar SET baslik=%s,adres=%s,sehir=%s,ilce=%s,fiyat=%s,
+            tip=%s,kategori=%s,durum=%s,metrekare=%s,oda_sayisi=%s,aciklama=%s
+            WHERE id=%s AND user_id=%s
+        ''', (baslik,
+              request.form.get('adres','').strip(),
+              request.form.get('sehir','').strip(),
+              request.form.get('ilce','').strip(),
+              request.form.get('fiyat') or None,
+              request.form.get('tip','satilik'),
+              request.form.get('kategori','daire'),
+              request.form.get('durum','aktif'),
+              request.form.get('metrekare') or None,
+              request.form.get('oda_sayisi','').strip(),
+              request.form.get('aciklama','').strip(),
+              id, current_user.id))
         db.commit()
-        flash(f'"{baslik}" güncellendi.', 'success')
+        flash('Güncellendi.', 'success')
         return redirect(url_for('ilan_detay', id=id))
     return render_template('ilan_form.html', ilan=ilan, baslik='İlan Düzenle')
 
 
 @app.route('/ilanlar/<int:id>/sil', methods=['POST'])
+@login_required
 def ilan_sil(id):
-    db = get_db()
-    ilan = db.execute('SELECT * FROM ilanlar WHERE id=%s', (id,)).fetchone()
+    db  = get_db()
+    ilan = own('ilanlar', id)
     if ilan:
-        db.execute('DELETE FROM ilanlar WHERE id=%s', (id,))
+        db.execute('DELETE FROM ilanlar WHERE id=%s AND user_id=%s', (id, current_user.id))
         db.commit()
-        flash(f'"{ilan["baslik"]}" ilanı silindi.', 'success')
+        flash(f'"{ilan["baslik"]}" silindi.', 'success')
     return redirect(url_for('ilanlar'))
 
 
 # ── Randevular ─────────────────────────────────────────────────────────────
 
 @app.route('/randevular')
+@login_required
 def randevular():
-    db = get_db()
-    durum  = request.args.get('durum', '')
-    query  = '''
-        SELECT r.*, m.ad || ' ' || m.soyad AS musteri_adi, i.baslik AS ilan_baslik
-        FROM randevular r
-        LEFT JOIN musteriler m ON r.musteri_id = m.id
-        LEFT JOIN ilanlar    i ON r.ilan_id    = i.id
-        WHERE 1=1
-    '''
-    params = []
-    if durum:
-        query += ' AND r.durum=%s'; params.append(durum)
-    query += ' ORDER BY r.tarih DESC, r.saat DESC'
-    liste = db.execute(query, params).fetchall()
+    db  = get_db()
+    uid = current_user.id
+    durum = request.args.get('durum','')
+    q = '''SELECT r.*, m.ad||' '||m.soyad AS musteri_adi, i.baslik AS ilan_baslik
+           FROM randevular r
+           LEFT JOIN musteriler m ON r.musteri_id=m.id
+           LEFT JOIN ilanlar    i ON r.ilan_id=i.id
+           WHERE r.user_id=%s'''
+    p = [uid]
+    if durum: q += ' AND r.durum=%s'; p.append(durum)
+    q += ' ORDER BY r.tarih DESC, r.saat DESC'
+    liste = db.execute(q, p).fetchall()
     return render_template('randevular.html', randevular=liste, durum=durum)
 
 
 @app.route('/randevular/ekle', methods=['GET', 'POST'])
+@login_required
 def randevu_ekle():
     db = get_db()
     if request.method == 'POST':
-        tarih = request.form.get('tarih', '').strip()
+        tarih = request.form.get('tarih','').strip()
         if not tarih:
             flash('Tarih zorunludur.', 'danger')
-            return _randevu_form(db, None, 'Yeni Randevu')
+            return _randevu_form(db)
         db.execute('''
-            INSERT INTO randevular (musteri_id, ilan_id, tarih, saat, konu, notlar, durum)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ''', (
-            request.form.get('musteri_id') or None,
-            request.form.get('ilan_id') or None,
-            tarih,
-            request.form.get('saat', '').strip() or None,
-            request.form.get('konu', '').strip(),
-            request.form.get('notlar', '').strip(),
-            request.form.get('durum', 'planlandı'),
-        ))
+            INSERT INTO randevular (user_id,musteri_id,ilan_id,tarih,saat,konu,notlar,durum)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+        ''', (current_user.id,
+              request.form.get('musteri_id') or None,
+              request.form.get('ilan_id') or None,
+              tarih,
+              request.form.get('saat','').strip() or None,
+              request.form.get('konu','').strip(),
+              request.form.get('notlar','').strip(),
+              request.form.get('durum','planlandı')))
         db.commit()
         flash('Randevu eklendi.', 'success')
         return redirect(url_for('randevular'))
-    pre_musteri = request.args.get('musteri_id')
-    pre_ilan    = request.args.get('ilan_id')
-    return _randevu_form(db, None, 'Yeni Randevu',
-                         pre_musteri_id=pre_musteri, pre_ilan_id=pre_ilan)
+    pre_m = request.args.get('musteri_id')
+    pre_i = request.args.get('ilan_id')
+    return _randevu_form(db, pre_musteri_id=pre_m, pre_ilan_id=pre_i)
 
 
 @app.route('/randevular/<int:id>/duzenle', methods=['GET', 'POST'])
+@login_required
 def randevu_duzenle(id):
     db = get_db()
-    randevu = db.execute('SELECT * FROM randevular WHERE id=%s', (id,)).fetchone()
+    randevu = own('randevular', id)
     if not randevu:
-        flash('Randevu bulunamadı.', 'danger')
+        flash('Kayıt bulunamadı.', 'danger')
         return redirect(url_for('randevular'))
     if request.method == 'POST':
-        tarih = request.form.get('tarih', '').strip()
+        tarih = request.form.get('tarih','').strip()
         if not tarih:
             flash('Tarih zorunludur.', 'danger')
-            return _randevu_form(db, randevu, 'Randevu Düzenle')
+            return _randevu_form(db, randevu=randevu)
         db.execute('''
-            UPDATE randevular
-            SET musteri_id=%s, ilan_id=%s, tarih=%s, saat=%s, konu=%s, notlar=%s, durum=%s
-            WHERE id=%s
-        ''', (
-            request.form.get('musteri_id') or None,
-            request.form.get('ilan_id') or None,
-            tarih,
-            request.form.get('saat', '').strip() or None,
-            request.form.get('konu', '').strip(),
-            request.form.get('notlar', '').strip(),
-            request.form.get('durum', 'planlandı'),
-            id,
-        ))
+            UPDATE randevular SET musteri_id=%s,ilan_id=%s,tarih=%s,saat=%s,konu=%s,notlar=%s,durum=%s
+            WHERE id=%s AND user_id=%s
+        ''', (request.form.get('musteri_id') or None,
+              request.form.get('ilan_id') or None,
+              tarih,
+              request.form.get('saat','').strip() or None,
+              request.form.get('konu','').strip(),
+              request.form.get('notlar','').strip(),
+              request.form.get('durum','planlandı'),
+              id, current_user.id))
         db.commit()
         flash('Randevu güncellendi.', 'success')
         return redirect(url_for('randevular'))
-    return _randevu_form(db, randevu, 'Randevu Düzenle')
+    return _randevu_form(db, randevu=randevu)
 
 
-def _randevu_form(db, randevu, baslik, pre_musteri_id=None, pre_ilan_id=None):
-    musteriler   = db.execute('SELECT * FROM musteriler ORDER BY ad, soyad').fetchall()
-    ilan_listesi = db.execute('SELECT * FROM ilanlar ORDER BY baslik').fetchall()
-    return render_template('randevu_form.html', randevu=randevu, baslik=baslik,
+def _randevu_form(db, randevu=None, pre_musteri_id=None, pre_ilan_id=None):
+    uid = current_user.id
+    musteriler   = db.execute('SELECT * FROM musteriler WHERE user_id=%s ORDER BY ad,soyad', (uid,)).fetchall()
+    ilan_listesi = db.execute('SELECT * FROM ilanlar WHERE user_id=%s ORDER BY baslik', (uid,)).fetchall()
+    return render_template('randevu_form.html', randevu=randevu,
+                           baslik='Randevu Düzenle' if randevu else 'Yeni Randevu',
                            musteriler=musteriler, ilan_listesi=ilan_listesi,
                            pre_musteri_id=pre_musteri_id, pre_ilan_id=pre_ilan_id)
 
 
 @app.route('/randevular/<int:id>/sil', methods=['POST'])
+@login_required
 def randevu_sil(id):
     db = get_db()
-    db.execute('DELETE FROM randevular WHERE id=%s', (id,))
-    db.commit()
-    flash('Randevu silindi.', 'success')
+    if own('randevular', id):
+        db.execute('DELETE FROM randevular WHERE id=%s AND user_id=%s', (id, current_user.id))
+        db.commit()
+        flash('Randevu silindi.', 'success')
     return redirect(url_for('randevular'))
 
 
@@ -532,30 +649,23 @@ def randevu_sil(id):
 
 @app.template_filter('para')
 def para_formatla(value):
-    if value is None:
-        return '—'
-    try:
-        return f"{float(value):,.0f} ₺".replace(',', '.')
-    except Exception:
-        return str(value)
+    if value is None: return '—'
+    try: return f"{float(value):,.0f} ₺".replace(',', '.')
+    except Exception: return str(value)
 
 
 @app.template_filter('tarih')
 def tarih_formatla(value):
-    if not value:
-        return '—'
+    if not value: return '—'
     try:
-        # PostgreSQL date/datetime nesneleri doğrudan strftime destekler
-        if hasattr(value, 'strftime'):
-            return value.strftime('%d.%m.%Y')
+        if hasattr(value, 'strftime'): return value.strftime('%d.%m.%Y')
         return datetime.strptime(str(value)[:10], '%Y-%m-%d').strftime('%d.%m.%Y')
-    except Exception:
-        return str(value)
+    except Exception: return str(value)
 
 
 if __name__ == '__main__':
     with app.app_context():
         init_db()
     port  = int(os.environ.get('PORT', 5000))
-    debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    debug = os.environ.get('FLASK_DEBUG','false').lower() == 'true'
     app.run(debug=debug, host='0.0.0.0', port=port)
