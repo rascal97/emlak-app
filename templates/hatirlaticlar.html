@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Hatırlatıcılar – Emlak Pro{% endblock %}
+{% block page_title %}Hatırlatıcılar{% endblock %}
+
+{% block header_right %}
+<a href="{{ url_for('hatirlatici_ekle') }}" class="tb-btn" title="Yeni Hatırlatıcı">
+  <i class="bi bi-plus-lg"></i>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="filter-chips">
+  <a href="{{ url_for('hatirlaticlar') }}"
+     class="chip {% if not durum %}active{% endif %}">Tümü</a>
+  <a href="{{ url_for('hatirlaticlar', durum='aktif') }}"
+     class="chip {% if durum=='aktif' %}active{% endif %}">Aktif</a>
+  <a href="{{ url_for('hatirlaticlar', durum='tamamlandi') }}"
+     class="chip {% if durum=='tamamlandi' %}active{% endif %}">Tamamlandı</a>
+</div>
+
+{% if hatirlaticlar %}
+<div class="card mx-3 mb-3">
+  {% for h in hatirlaticlar %}
+  {% set gecti = h.tarih < today and h.durum == 'aktif' %}
+  {% set yarin = h.tarih == tomorrow and h.durum == 'aktif' %}
+  {% set bugun = h.tarih == today and h.durum == 'aktif' %}
+
+  <div class="list-row" style="{% if gecti %}background:#fff5f5;{% endif %}">
+    <div class="row-icon
+      {% if h.durum == 'tamamlandi' %}bg-success bg-opacity-10{% elif gecti %}bg-danger bg-opacity-10{% elif yarin or bugun %}bg-warning bg-opacity-10{% else %}bg-primary bg-opacity-10{% endif %}">
+      <i class="bi
+        {% if h.durum == 'tamamlandi' %}bi-check-circle-fill text-success
+        {% elif gecti %}bi-exclamation-circle-fill text-danger
+        {% elif yarin or bugun %}bi-bell-fill text-warning
+        {% else %}bi-bell text-primary{% endif %}"></i>
+    </div>
+
+    <div class="row-body">
+      <div class="row-title {% if h.durum == 'tamamlandi' %}text-decoration-line-through text-muted{% endif %}">
+        {{ h.baslik }}
+      </div>
+      <div class="row-sub">
+        {% if bugun %}
+          <span class="text-danger fw-semibold">Bugün</span>
+        {% elif yarin %}
+          <span class="text-warning fw-semibold">Yarın</span>
+        {% else %}
+          {{ h.tarih | tarih }}
+        {% endif %}
+        {% if h.saat %} · {{ h.saat | saat }}{% endif %}
+        {% if h.aciklama %} · {{ h.aciklama[:50] }}{% if h.aciklama | length > 50 %}…{% endif %}{% endif %}
+      </div>
+    </div>
+
+    <div class="d-flex gap-1">
+      {% if h.durum == 'aktif' %}
+      <form method="post" action="{{ url_for('hatirlatici_tamamla', id=h.id) }}">
+        <button type="submit" class="btn-icon btn btn-outline-success" title="Tamamlandı işaretle">
+          <i class="bi bi-check2"></i>
+        </button>
+      </form>
+      {% endif %}
+      <a href="{{ url_for('hatirlatici_duzenle', id=h.id) }}"
+         class="btn-icon btn btn-outline-secondary" title="Düzenle">
+        <i class="bi bi-pencil"></i>
+      </a>
+      <form method="post" action="{{ url_for('hatirlatici_sil', id=h.id) }}">
+        <button type="button" class="btn-icon btn btn-outline-danger delete-confirm"
+                data-confirm="{{ h.baslik }} hatırlatıcısını silmek istiyor musunuz?"
+                title="Sil">
+          <i class="bi bi-trash"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <i class="bi bi-bell-slash"></i>
+  <p>Henüz hatırlatıcı yok.</p>
+  <a href="{{ url_for('hatirlatici_ekle') }}" class="btn btn-primary">İlk Hatırlatıcıyı Ekle</a>
+</div>
+{% endif %}
+{% endblock %}

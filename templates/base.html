@@ -301,6 +301,20 @@
     <i class="bi bi-calendar3{% if 'randevu' in ep %}-fill{% endif %}"></i>
     <span class="lbl">Randevular</span>
   </a>
+  <a href="{{ url_for('hatirlaticlar') }}"
+     class="bn-item {% if 'hatirlatici' in ep %}active{% endif %}"
+     style="position:relative;">
+    <i class="bi bi-bell{% if 'hatirlatici' in ep %}-fill{% endif %}"></i>
+    {% if hatirlatici_badge and hatirlatici_badge > 0 %}
+    <span style="position:absolute;top:6px;right:calc(50% - 20px);
+                 background:#e67e22;color:white;border-radius:50%;
+                 width:16px;height:16px;font-size:.58rem;font-weight:700;
+                 display:flex;align-items:center;justify-content:center;line-height:1;">
+      {{ hatirlatici_badge if hatirlatici_badge <= 9 else '9+' }}
+    </span>
+    {% endif %}
+    <span class="lbl">Hatırlatıcı</span>
+  </a>
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -379,6 +393,48 @@
     </button>
   </div>
 </div>
+
+<!-- Push bildirim aboneliği -->
+<script>
+function _urlB64ToUint8(b64) {
+  const pad = '='.repeat((4 - b64.length % 4) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+
+async function pushSubscribe() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const vapidKey = await fetch('/push/vapid-public-key').then(r => r.text()).catch(() => '');
+    if (!vapidKey || vapidKey.length < 10) return;
+    const sw = await navigator.serviceWorker.ready;
+    const existing = await sw.pushManager.getSubscription();
+    if (existing) {
+      fetch('/push/subscribe', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(existing.toJSON())
+      });
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return;
+    const sub = await sw.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: _urlB64ToUint8(vapidKey)
+    });
+    await fetch('/push/subscribe', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(sub.toJSON())
+    });
+  } catch (e) { console.log('[Push]', e); }
+}
+
+{% if current_user.is_authenticated %}
+window.addEventListener('load', () => setTimeout(pushSubscribe, 4000));
+{% endif %}
+</script>
 
 <!-- Service Worker + PWA kurulum -->
 <script>

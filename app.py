@@ -2,8 +2,22 @@ from flask import Flask, render_template, request, redirect, url_for, flash, g
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2, psycopg2.extras, psycopg2.errors
-import os
-from datetime import datetime
+import os, json, base64
+from datetime import datetime, date, timedelta
+
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.triggers.cron import CronTrigger
+    import atexit
+    _SCHED_AVAILABLE = True
+except ImportError:
+    _SCHED_AVAILABLE = False
+
+try:
+    from pywebpush import webpush, WebPushException
+    _PUSH_LIB = True
+except ImportError:
+    _PUSH_LIB = False
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'emlak_pro_gizli_2024')
@@ -11,6 +25,34 @@ app.secret_key = os.environ.get('SECRET_KEY', 'emlak_pro_gizli_2024')
 _DB_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost/emlak')
 if _DB_URL.startswith('postgres://'):
     _DB_URL = _DB_URL.replace('postgres://', 'postgresql://', 1)
+
+# ── VAPID push bildirimi anahtarları ───────────────────────────────────────
+VAPID_PRIVATE_KEY  = os.environ.get('VAPID_PRIVATE_KEY', '')
+VAPID_PUBLIC_KEY   = os.environ.get('VAPID_PUBLIC_KEY', '')
+
+if _PUSH_LIB and not (VAPID_PRIVATE_KEY and VAPID_PUBLIC_KEY):
+    try:
+        from py_vapid import Vapid
+        from cryptography.hazmat.primitives import serialization
+        _v = Vapid()
+        _v.generate_keys()
+        _priv_num = _v.private_key.private_numbers().private_value
+        _priv_raw = _priv_num.to_bytes(32, 'big')
+        VAPID_PRIVATE_KEY = base64.urlsafe_b64encode(_priv_raw).rstrip(b'=').decode()
+        _pub_raw = _v.public_key.public_bytes(
+            serialization.Encoding.X962,
+            serialization.PublicFormat.UncompressedPoint
+        )
+        VAPID_PUBLIC_KEY = base64.urlsafe_b64encode(_pub_raw).rstrip(b'=').decode()
+        print('=' * 70)
+        print('[VAPID] Kalici bildirimler icin Railway\'e su env vars ekle:')
+        print(f'  VAPID_PRIVATE_KEY={VAPID_PRIVATE_KEY}')
+        print(f'  VAPID_PUBLIC_KEY={VAPID_PUBLIC_KEY}')
+        print('=' * 70)
+    except Exception as _ve:
+        print(f'[VAPID] Anahtar olusturulamadi: {_ve}')
+
+PUSH_ENABLED = _PUSH_LIB and bool(VAPID_PRIVATE_KEY and VAPID_PUBLIC_KEY)
 
 # ── Flask-Login ────────────────────────────────────────────────────────────
 
@@ -132,6 +174,24 @@ def init_db():
             notlar      TEXT,
             created_at  TIMESTAMP DEFAULT NOW(),
             UNIQUE(musteri_id, ilan_id)
+        )""",
+        """CREATE TABLE IF NOT EXISTS hatirlaticlar (
+            id                  SERIAL PRIMARY KEY,
+            user_id             INTEGER REFERENCES kullanicilar(id) ON DELETE CASCADE,
+            baslik              TEXT NOT NULL,
+            aciklama            TEXT,
+            tarih               DATE NOT NULL,
+            saat                TIME,
+            durum               TEXT DEFAULT 'aktif',
+            bildirim_gonderildi BOOLEAN DEFAULT FALSE,
+            created_at          TIMESTAMP DEFAULT NOW()
+        )""",
+        """CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id                SERIAL PRIMARY KEY,
+            user_id           INTEGER REFERENCES kullanicilar(id) ON DELETE CASCADE,
+            subscription_json TEXT NOT NULL,
+            endpoint          TEXT,
+            created_at        TIMESTAMP DEFAULT NOW()
         )""",
     ]:
         db.execute(stmt)
@@ -661,6 +721,230 @@ def tarih_formatla(value):
         if hasattr(value, 'strftime'): return value.strftime('%d.%m.%Y')
         return datetime.strptime(str(value)[:10], '%Y-%m-%d').strftime('%d.%m.%Y')
     except Exception: return str(value)
+
+
+@app.template_filter('saat')
+def saat_formatla(value):
+    if not value: return ''
+    try:
+        if hasattr(value, 'strftime'): return value.strftime('%H:%M')
+        return str(value)[:5]
+    except Exception: return str(value)
+
+
+@app.context_processor
+def inject_globals():
+    badge = 0
+    if current_user.is_authenticated:
+        try:
+            db = get_db()
+            row = db.execute(
+                """SELECT COUNT(*) FROM hatirlaticlar
+                   WHERE user_id=%s AND durum='aktif'
+                     AND tarih BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '1 day'""",
+                (current_user.id,)
+            ).fetchone()
+            badge = row[0] if row else 0
+        except Exception:
+            badge = 0
+    return {'hatirlatici_badge': badge, 'today': date.today(), 'tomorrow': date.today() + timedelta(days=1)}
+
+
+# ── Hatırlatıcılar ────────────────────────────────────────────────────────
+
+@app.route('/hatirlaticlar')
+@login_required
+def hatirlaticlar():
+    db = get_db()
+    uid = current_user.id
+    durum = request.args.get('durum', '')
+    q = 'SELECT * FROM hatirlaticlar WHERE user_id=%s'
+    p = [uid]
+    if durum:
+        q += ' AND durum=%s'
+        p.append(durum)
+    q += ' ORDER BY tarih ASC, saat ASC NULLS LAST'
+    liste = db.execute(q, p).fetchall()
+    return render_template('hatirlaticlar.html', hatirlaticlar=liste, durum=durum)
+
+
+@app.route('/hatirlaticlar/ekle', methods=['GET', 'POST'])
+@login_required
+def hatirlatici_ekle():
+    if request.method == 'POST':
+        baslik = request.form['baslik'].strip()
+        tarih  = request.form.get('tarih', '').strip()
+        if not baslik or not tarih:
+            flash('Başlık ve tarih zorunludur.', 'danger')
+            return render_template('hatirlatici_form.html', h=None, baslik='Yeni Hatırlatıcı')
+        db = get_db()
+        db.execute(
+            '''INSERT INTO hatirlaticlar (user_id,baslik,aciklama,tarih,saat,durum)
+               VALUES (%s,%s,%s,%s,%s,'aktif')''',
+            (current_user.id, baslik,
+             request.form.get('aciklama', '').strip() or None,
+             tarih,
+             request.form.get('saat', '').strip() or None)
+        )
+        db.commit()
+        flash(f'"{baslik}" hatırlatıcısı eklendi.', 'success')
+        return redirect(url_for('hatirlaticlar'))
+    return render_template('hatirlatici_form.html', h=None, baslik='Yeni Hatırlatıcı')
+
+
+@app.route('/hatirlaticlar/<int:id>/duzenle', methods=['GET', 'POST'])
+@login_required
+def hatirlatici_duzenle(id):
+    db = get_db()
+    h = own('hatirlaticlar', id)
+    if not h:
+        flash('Kayıt bulunamadı.', 'danger')
+        return redirect(url_for('hatirlaticlar'))
+    if request.method == 'POST':
+        baslik = request.form['baslik'].strip()
+        tarih  = request.form.get('tarih', '').strip()
+        if not baslik or not tarih:
+            flash('Başlık ve tarih zorunludur.', 'danger')
+            return render_template('hatirlatici_form.html', h=h, baslik='Hatırlatıcı Düzenle')
+        db.execute(
+            '''UPDATE hatirlaticlar SET baslik=%s,aciklama=%s,tarih=%s,saat=%s,
+               durum=%s,bildirim_gonderildi=FALSE WHERE id=%s AND user_id=%s''',
+            (baslik,
+             request.form.get('aciklama', '').strip() or None,
+             tarih,
+             request.form.get('saat', '').strip() or None,
+             request.form.get('durum', 'aktif'),
+             id, current_user.id)
+        )
+        db.commit()
+        flash('Hatırlatıcı güncellendi.', 'success')
+        return redirect(url_for('hatirlaticlar'))
+    return render_template('hatirlatici_form.html', h=h, baslik='Hatırlatıcı Düzenle')
+
+
+@app.route('/hatirlaticlar/<int:id>/tamamla', methods=['POST'])
+@login_required
+def hatirlatici_tamamla(id):
+    db = get_db()
+    if own('hatirlaticlar', id):
+        db.execute("UPDATE hatirlaticlar SET durum='tamamlandi' WHERE id=%s AND user_id=%s",
+                   (id, current_user.id))
+        db.commit()
+        flash('Tamamlandı olarak işaretlendi.', 'success')
+    return redirect(url_for('hatirlaticlar'))
+
+
+@app.route('/hatirlaticlar/<int:id>/sil', methods=['POST'])
+@login_required
+def hatirlatici_sil(id):
+    db = get_db()
+    h = own('hatirlaticlar', id)
+    if h:
+        db.execute('DELETE FROM hatirlaticlar WHERE id=%s AND user_id=%s', (id, current_user.id))
+        db.commit()
+        flash(f'"{h["baslik"]}" silindi.', 'success')
+    return redirect(url_for('hatirlaticlar'))
+
+
+# ── Push Bildirimi ─────────────────────────────────────────────────────────
+
+@app.route('/push/vapid-public-key')
+def push_vapid_key():
+    return VAPID_PUBLIC_KEY, 200, {'Content-Type': 'text/plain'}
+
+
+@app.route('/push/subscribe', methods=['POST'])
+@login_required
+def push_subscribe():
+    if not PUSH_ENABLED:
+        return {'error': 'Push disabled'}, 503
+    data = request.get_json(silent=True)
+    if not data or 'endpoint' not in data:
+        return {'error': 'Invalid'}, 400
+    sub_json = json.dumps(data)
+    endpoint = data.get('endpoint', '')
+    db = get_db()
+    db.execute('DELETE FROM push_subscriptions WHERE user_id=%s AND endpoint=%s',
+               (current_user.id, endpoint))
+    db.execute('INSERT INTO push_subscriptions (user_id,subscription_json,endpoint) VALUES (%s,%s,%s)',
+               (current_user.id, sub_json, endpoint))
+    db.commit()
+    return {'ok': True}, 201
+
+
+@app.route('/push/unsubscribe', methods=['POST'])
+@login_required
+def push_unsubscribe():
+    data = request.get_json(silent=True) or {}
+    endpoint = data.get('endpoint', '')
+    if endpoint:
+        db = get_db()
+        db.execute('DELETE FROM push_subscriptions WHERE user_id=%s AND endpoint=%s',
+                   (current_user.id, endpoint))
+        db.commit()
+    return {'ok': True}, 200
+
+
+# ── Zamanlayıcı: 1 gün öncesi push bildirimi ──────────────────────────────
+
+def _bildirim_gonder_job():
+    try:
+        conn = psycopg2.connect(_DB_URL)
+        cur  = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute("""
+            SELECT id, user_id, baslik, aciklama, saat
+            FROM hatirlaticlar
+            WHERE tarih = CURRENT_DATE + INTERVAL '1 day'
+              AND durum = 'aktif'
+              AND bildirim_gonderildi = FALSE
+        """)
+        reminders = cur.fetchall()
+        for r in reminders:
+            cur2 = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cur2.execute('SELECT subscription_json FROM push_subscriptions WHERE user_id=%s',
+                         (r['user_id'],))
+            subs = cur2.fetchall()
+            for sub in subs:
+                try:
+                    saat_str = saat_formatla(r['saat'])
+                    body = r['aciklama'] or (f"Saat: {saat_str}" if saat_str else 'Yarın için hatırlatıcınız var.')
+                    webpush(
+                        subscription_info=json.loads(sub['subscription_json']),
+                        data=json.dumps({
+                            'title': f"⏰ {r['baslik']}",
+                            'body': body,
+                            'icon': '/static/icons/icon-192.png',
+                            'badge': '/static/icons/icon-192.png',
+                            'data': {'url': '/hatirlaticlar'}
+                        }),
+                        vapid_private_key=VAPID_PRIVATE_KEY,
+                        vapid_claims={'sub': 'mailto:admin@emlakpro.com'}
+                    )
+                except Exception as pe:
+                    print(f'[Push] Hata uid={r["user_id"]}: {pe}')
+            cur.execute('UPDATE hatirlaticlar SET bildirim_gonderildi=TRUE WHERE id=%s', (r['id'],))
+        conn.commit()
+        cur.close()
+        conn.close()
+        if reminders:
+            print(f'[Scheduler] {len(reminders)} hatirlatici islendi.')
+    except Exception as e:
+        print(f'[Scheduler] Hata: {e}')
+
+
+if _SCHED_AVAILABLE and PUSH_ENABLED:
+    _scheduler = BackgroundScheduler(timezone='Europe/Istanbul')
+    _scheduler.add_job(
+        _bildirim_gonder_job,
+        CronTrigger(hour=9, minute=0, timezone='Europe/Istanbul'),
+        id='bildirim',
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=3600
+    )
+    _scheduler.start()
+    atexit.register(lambda: _scheduler.shutdown(wait=False))
+    print('[Scheduler] Bildirim zamanlayici basladi (her gun 09:00 TR saati).')
 
 
 if __name__ == '__main__':

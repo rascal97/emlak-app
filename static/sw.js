@@ -1,4 +1,4 @@
-const CACHE = 'emlak-pro-v1';
+const CACHE = 'emlak-pro-v2';
 
 const PRECACHE = [
   '/',
@@ -6,6 +6,7 @@ const PRECACHE = [
   '/musteriler',
   '/ilanlar',
   '/randevular',
+  '/hatirlaticlar',
   '/static/manifest.json',
   '/static/icons/icon-192.png',
   '/static/icons/icon-512.png',
@@ -26,6 +27,35 @@ self.addEventListener('activate', e => {
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
+  );
+});
+
+// ── Push bildirimi ──
+self.addEventListener('push', e => {
+  let payload = {};
+  try { payload = e.data ? e.data.json() : {}; } catch {}
+  const title   = payload.title  || 'Emlak Pro Hatırlatıcı';
+  const options = {
+    body:    payload.body  || '',
+    icon:    payload.icon  || '/static/icons/icon-192.png',
+    badge:   payload.badge || '/static/icons/icon-192.png',
+    data:    payload.data  || {},
+    vibrate: [200, 100, 200],
+    requireInteraction: true,
+  };
+  e.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || '/hatirlaticlar';
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) {
+        if ('focus' in c) return c.focus();
+      }
+      return clients.openWindow(url);
+    })
   );
 });
 

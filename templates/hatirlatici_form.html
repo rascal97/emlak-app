@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}{{ baslik }} – Emlak Pro{% endblock %}
+{% block page_title %}{{ baslik }}{% endblock %}
+
+{% block header_left %}
+<a href="{{ url_for('hatirlaticlar') }}" class="tb-btn">
+  <i class="bi bi-arrow-left"></i>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-content">
+  <form method="post" novalidate>
+    <div class="form-group">
+      <label class="form-label">Başlık <span class="text-danger">*</span></label>
+      <input type="text" name="baslik" class="form-control" required autofocus
+             value="{{ h.baslik if h else '' }}"
+             placeholder="Örn: Müşteri ile görüşme">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Açıklama</label>
+      <textarea name="aciklama" class="form-control"
+                placeholder="İsteğe bağlı detay">{{ h.aciklama if h and h.aciklama else '' }}</textarea>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-7">
+        <div class="form-group">
+          <label class="form-label">Tarih <span class="text-danger">*</span></label>
+          <input type="date" name="tarih" class="form-control" required
+                 value="{{ h.tarih.strftime('%Y-%m-%d') if h and h.tarih else '' }}">
+          <div class="form-text">Bildirim 1 gün önce gönderilir.</div>
+        </div>
+      </div>
+      <div class="col-5">
+        <div class="form-group">
+          <label class="form-label">Saat</label>
+          <input type="time" name="saat" class="form-control"
+                 value="{{ h.saat | saat if h and h.saat else '' }}">
+        </div>
+      </div>
+    </div>
+
+    {% if h %}
+    <div class="form-group">
+      <label class="form-label">Durum</label>
+      <select name="durum" class="form-select">
+        <option value="aktif" {% if h.durum == 'aktif' %}selected{% endif %}>Aktif</option>
+        <option value="tamamlandi" {% if h.durum == 'tamamlandi' %}selected{% endif %}>Tamamlandı</option>
+      </select>
+    </div>
+    {% endif %}
+
+    <hr class="form-divider">
+    <button type="submit" class="btn btn-primary btn-full">
+      <i class="bi bi-check2-circle"></i>
+      {{ 'Güncelle' if h else 'Kaydet' }}
+    </button>
+  </form>
+
+  {% if h %}
+  <form method="post" action="{{ url_for('hatirlatici_sil', id=h.id) }}" class="mt-2">
+    <button type="button" class="btn btn-outline-danger btn-full delete-confirm"
+            data-confirm="{{ h.baslik }} hatırlatıcısını silmek istiyor musunuz?">
+      <i class="bi bi-trash"></i> Sil
+    </button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
