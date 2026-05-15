@@ -176,15 +176,16 @@ def init_db():
             UNIQUE(musteri_id, ilan_id)
         )""",
         """CREATE TABLE IF NOT EXISTS hatirlaticlar (
-            id                  SERIAL PRIMARY KEY,
-            user_id             INTEGER REFERENCES kullanicilar(id) ON DELETE CASCADE,
-            baslik              TEXT NOT NULL,
-            aciklama            TEXT,
-            tarih               DATE NOT NULL,
-            saat                TIME,
-            durum               TEXT DEFAULT 'aktif',
-            bildirim_gonderildi BOOLEAN DEFAULT FALSE,
-            created_at          TIMESTAMP DEFAULT NOW()
+            id                       SERIAL PRIMARY KEY,
+            user_id                  INTEGER REFERENCES kullanicilar(id) ON DELETE CASCADE,
+            baslik                   TEXT NOT NULL,
+            aciklama                 TEXT,
+            tarih                    DATE NOT NULL,
+            saat                     TIME,
+            durum                    TEXT DEFAULT 'aktif',
+            bildirim_gonderildi      BOOLEAN DEFAULT FALSE,
+            bildirim_1saat_gonderildi BOOLEAN DEFAULT FALSE,
+            created_at               TIMESTAMP DEFAULT NOW()
         )""",
         """CREATE TABLE IF NOT EXISTS push_subscriptions (
             id                SERIAL PRIMARY KEY,
@@ -201,6 +202,7 @@ def init_db():
         "ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES kullanicilar(id) ON DELETE CASCADE",
         "ALTER TABLE ilanlar    ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES kullanicilar(id) ON DELETE CASCADE",
         "ALTER TABLE randevular ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES kullanicilar(id) ON DELETE CASCADE",
+        "ALTER TABLE hatirlaticlar ADD COLUMN IF NOT EXISTS bildirim_1saat_gonderildi BOOLEAN DEFAULT FALSE",
     ]:
         try:
             db.execute(alter)
@@ -808,7 +810,7 @@ def hatirlatici_duzenle(id):
             return render_template('hatirlatici_form.html', h=h, baslik='Hatırlatıcı Düzenle')
         db.execute(
             '''UPDATE hatirlaticlar SET baslik=%s,aciklama=%s,tarih=%s,saat=%s,
-               durum=%s,bildirim_gonderildi=FALSE WHERE id=%s AND user_id=%s''',
+               durum=%s,bildirim_gonderildi=FALSE,bildirim_1saat_gonderildi=FALSE WHERE id=%s AND user_id=%s''',
             (baslik,
              request.form.get('aciklama', '').strip() or None,
              tarih,
@@ -932,19 +934,75 @@ def _bildirim_gonder_job():
         print(f'[Scheduler] Hata: {e}')
 
 
+def _bildirim_1saat_job():
+    """Bugün saati olan hatırlatıcılara 1 saat kala bildirim gönderir."""
+    try:
+        conn = psycopg2.connect(_DB_URL)
+        cur  = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute("""
+            SELECT id, user_id, baslik, aciklama, saat
+            FROM hatirlaticlar
+            WHERE tarih = (NOW() AT TIME ZONE 'Europe/Istanbul')::date
+              AND saat IS NOT NULL
+              AND saat >  ((NOW() AT TIME ZONE 'Europe/Istanbul'))::time
+              AND saat <= ((NOW() AT TIME ZONE 'Europe/Istanbul') + INTERVAL '1 hour')::time
+              AND durum  = 'aktif'
+              AND bildirim_1saat_gonderildi = FALSE
+        """)
+        reminders = cur.fetchall()
+        for r in reminders:
+            cur2 = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cur2.execute('SELECT subscription_json FROM push_subscriptions WHERE user_id=%s', (r['user_id'],))
+            subs = cur2.fetchall()
+            for sub in subs:
+                try:
+                    saat_str = saat_formatla(r['saat'])
+                    body = r['aciklama'] or f"Saat {saat_str}'de hatırlatıcınız var."
+                    webpush(
+                        subscription_info=json.loads(sub['subscription_json']),
+                        data=json.dumps({
+                            'title': f"⏰ 1 Saat Kaldı: {r['baslik']}",
+                            'body': body,
+                            'icon': '/static/icons/icon-192.png',
+                            'badge': '/static/icons/icon-192.png',
+                            'data': {'url': '/hatirlaticlar'}
+                        }),
+                        vapid_private_key=VAPID_PRIVATE_KEY,
+                        vapid_claims={'sub': 'mailto:admin@emlakpro.com'}
+                    )
+                except Exception as pe:
+                    print(f'[Push-1h] Hata: {pe}')
+            cur.execute('UPDATE hatirlaticlar SET bildirim_1saat_gonderildi=TRUE WHERE id=%s', (r['id'],))
+        conn.commit()
+        cur.close()
+        conn.close()
+        if reminders:
+            print(f'[Scheduler-1h] {len(reminders)} hatirlatici islendi.')
+    except Exception as e:
+        print(f'[Scheduler-1h] Hata: {e}')
+
+
 if _SCHED_AVAILABLE and PUSH_ENABLED:
     _scheduler = BackgroundScheduler(timezone='Europe/Istanbul')
     _scheduler.add_job(
         _bildirim_gonder_job,
         CronTrigger(hour=9, minute=0, timezone='Europe/Istanbul'),
-        id='bildirim',
+        id='bildirim_ertesi',
         max_instances=1,
         coalesce=True,
         misfire_grace_time=3600
     )
+    _scheduler.add_job(
+        _bildirim_1saat_job,
+        'interval',
+        minutes=5,
+        id='bildirim_1saat',
+        max_instances=1,
+        coalesce=True
+    )
     _scheduler.start()
     atexit.register(lambda: _scheduler.shutdown(wait=False))
-    print('[Scheduler] Bildirim zamanlayici basladi (her gun 09:00 TR saati).')
+    print('[Scheduler] Bildirim zamanlayici basladi (09:00 ertesi gun + her 5 dk 1 saat oncesi).')
 
 
 if __name__ == '__main__':
