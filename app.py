@@ -2,8 +2,10 @@ from flask import Flask, render_template, request, redirect, url_for, flash, g
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2, psycopg2.extras, psycopg2.errors
-import os, json, base64
+import os, json, base64, smtplib
 from datetime import datetime, date, timedelta
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 try:
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -53,6 +55,53 @@ if _PUSH_LIB and not (VAPID_PRIVATE_KEY and VAPID_PUBLIC_KEY):
         print(f'[VAPID] Anahtar olusturulamadi: {_ve}')
 
 PUSH_ENABLED = _PUSH_LIB and bool(VAPID_PRIVATE_KEY and VAPID_PUBLIC_KEY)
+
+# ── Mail yapılandırması ────────────────────────────────────────────────────
+MAIL_USER = os.environ.get('MAIL_USER', '')
+MAIL_PASS = os.environ.get('MAIL_PASS', '')
+MAIL_ENABLED = bool(MAIL_USER and MAIL_PASS)
+
+
+def send_mail(to_email, subject, body_html):
+    if not MAIL_ENABLED or not to_email:
+        return
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From']    = f'Emlak Pro <{MAIL_USER}>'
+        msg['To']      = to_email
+        msg.attach(MIMEText(body_html, 'html'))
+        with smtplib.SMTP('smtp.gmail.com', 587) as s:
+            s.ehlo()
+            s.starttls()
+            s.login(MAIL_USER, MAIL_PASS)
+            s.sendmail(MAIL_USER, to_email, msg.as_string())
+        print(f'[Mail] Gonderildi -> {to_email}')
+    except Exception as e:
+        print(f'[Mail] Hata: {e}')
+
+
+def _mail_html(baslik, mesaj, renk='#1b3a5c'):
+    return f"""
+    <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:480px;margin:0 auto;
+                background:#f1f4f8;padding:24px">
+      <div style="background:white;border-radius:14px;overflow:hidden;
+                  box-shadow:0 2px 8px rgba(0,0,0,.08)">
+        <div style="background:{renk};padding:20px 24px">
+          <h1 style="color:white;margin:0;font-size:1.2rem">🏠 Emlak Pro</h1>
+        </div>
+        <div style="padding:24px">
+          <h2 style="margin:0 0 12px;color:#111827;font-size:1.1rem">{baslik}</h2>
+          <p style="margin:0;color:#374151;line-height:1.6">{mesaj}</p>
+        </div>
+        <div style="padding:12px 24px;background:#f9fafb;border-top:1px solid #e5e7eb">
+          <p style="margin:0;font-size:.8rem;color:#9ca3af">
+            Bu mail Emlak Pro hatırlatıcı sistemi tarafından gönderilmiştir.
+          </p>
+        </div>
+      </div>
+    </div>
+    """
 
 # ── Flask-Login ────────────────────────────────────────────────────────────
 
@@ -894,36 +943,48 @@ def _bildirim_gonder_job():
         conn = psycopg2.connect(_DB_URL)
         cur  = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cur.execute("""
-            SELECT id, user_id, baslik, aciklama, saat
-            FROM hatirlaticlar
-            WHERE tarih = CURRENT_DATE + INTERVAL '1 day'
-              AND durum = 'aktif'
-              AND bildirim_gonderildi = FALSE
+            SELECT h.id, h.user_id, h.baslik, h.aciklama, h.saat,
+                   k.email AS kullanici_email
+            FROM hatirlaticlar h
+            JOIN kullanicilar k ON h.user_id = k.id
+            WHERE h.tarih = (NOW() AT TIME ZONE 'Europe/Istanbul')::date + 1
+              AND h.durum = 'aktif'
+              AND h.bildirim_gonderildi = FALSE
         """)
         reminders = cur.fetchall()
         for r in reminders:
+            saat_str = saat_formatla(r['saat'])
+            aciklama = r['aciklama'] or ''
+            # Push bildirimi
             cur2 = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cur2.execute('SELECT subscription_json FROM push_subscriptions WHERE user_id=%s',
                          (r['user_id'],))
-            subs = cur2.fetchall()
-            for sub in subs:
+            for sub in cur2.fetchall():
                 try:
-                    saat_str = saat_formatla(r['saat'])
-                    body = r['aciklama'] or (f"Saat: {saat_str}" if saat_str else 'Yarın için hatırlatıcınız var.')
                     webpush(
                         subscription_info=json.loads(sub['subscription_json']),
                         data=json.dumps({
                             'title': f"⏰ {r['baslik']}",
-                            'body': body,
+                            'body': aciklama or (f"Yarın saat {saat_str}" if saat_str else 'Yarın için hatırlatıcınız var.'),
                             'icon': '/static/icons/icon-192.png',
                             'badge': '/static/icons/icon-192.png',
                             'data': {'url': '/hatirlaticlar'}
                         }),
                         vapid_private_key=VAPID_PRIVATE_KEY,
-                        vapid_claims={'sub': 'mailto:admin@emlakpro.com'}
+                        vapid_claims={'sub': f'mailto:{MAIL_USER or "admin@emlakpro.com"}'}
                     )
                 except Exception as pe:
-                    print(f'[Push] Hata uid={r["user_id"]}: {pe}')
+                    print(f'[Push] Hata: {pe}')
+            # Mail bildirimi
+            if r['kullanici_email']:
+                detay = (f"<br>Saat: <strong>{saat_str}</strong>" if saat_str else '') + \
+                        (f"<br>{aciklama}" if aciklama else '')
+                send_mail(
+                    r['kullanici_email'],
+                    f"⏰ Yarın: {r['baslik']}",
+                    _mail_html(f"Yarın: {r['baslik']}",
+                               f"Yarınki hatırlatıcınız için hatırlatmak istedik.{detay}")
+                )
             cur.execute('UPDATE hatirlaticlar SET bildirim_gonderildi=TRUE WHERE id=%s', (r['id'],))
         conn.commit()
         cur.close()
@@ -940,38 +1001,51 @@ def _bildirim_1saat_job():
         conn = psycopg2.connect(_DB_URL)
         cur  = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cur.execute("""
-            SELECT id, user_id, baslik, aciklama, saat
-            FROM hatirlaticlar
-            WHERE tarih = (NOW() AT TIME ZONE 'Europe/Istanbul')::date
-              AND saat IS NOT NULL
-              AND saat >  ((NOW() AT TIME ZONE 'Europe/Istanbul'))::time
-              AND saat <= ((NOW() AT TIME ZONE 'Europe/Istanbul') + INTERVAL '1 hour')::time
-              AND durum  = 'aktif'
-              AND bildirim_1saat_gonderildi = FALSE
+            SELECT h.id, h.user_id, h.baslik, h.aciklama, h.saat,
+                   k.email AS kullanici_email
+            FROM hatirlaticlar h
+            JOIN kullanicilar k ON h.user_id = k.id
+            WHERE h.tarih = (NOW() AT TIME ZONE 'Europe/Istanbul')::date
+              AND h.saat IS NOT NULL
+              AND h.saat >  ((NOW() AT TIME ZONE 'Europe/Istanbul'))::time
+              AND h.saat <= ((NOW() AT TIME ZONE 'Europe/Istanbul') + INTERVAL '1 hour')::time
+              AND h.durum  = 'aktif'
+              AND h.bildirim_1saat_gonderildi = FALSE
         """)
         reminders = cur.fetchall()
         for r in reminders:
+            saat_str = saat_formatla(r['saat'])
+            aciklama = r['aciklama'] or ''
+            # Push bildirimi
             cur2 = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cur2.execute('SELECT subscription_json FROM push_subscriptions WHERE user_id=%s', (r['user_id'],))
-            subs = cur2.fetchall()
-            for sub in subs:
+            for sub in cur2.fetchall():
                 try:
-                    saat_str = saat_formatla(r['saat'])
-                    body = r['aciklama'] or f"Saat {saat_str}'de hatırlatıcınız var."
                     webpush(
                         subscription_info=json.loads(sub['subscription_json']),
                         data=json.dumps({
                             'title': f"⏰ 1 Saat Kaldı: {r['baslik']}",
-                            'body': body,
+                            'body': aciklama or f"Saat {saat_str}'de hatırlatıcınız var.",
                             'icon': '/static/icons/icon-192.png',
                             'badge': '/static/icons/icon-192.png',
                             'data': {'url': '/hatirlaticlar'}
                         }),
                         vapid_private_key=VAPID_PRIVATE_KEY,
-                        vapid_claims={'sub': 'mailto:admin@emlakpro.com'}
+                        vapid_claims={'sub': f'mailto:{MAIL_USER or "admin@emlakpro.com"}'}
                     )
                 except Exception as pe:
                     print(f'[Push-1h] Hata: {pe}')
+            # Mail bildirimi
+            if r['kullanici_email']:
+                detay = (f"<br>Saat: <strong>{saat_str}</strong>" if saat_str else '') + \
+                        (f"<br>{aciklama}" if aciklama else '')
+                send_mail(
+                    r['kullanici_email'],
+                    f"⏰ 1 Saat Kaldı: {r['baslik']}",
+                    _mail_html(f"1 Saat Kaldı: {r['baslik']}",
+                               f"Hatırlatıcınıza 1 saatten az kaldı.{detay}",
+                               renk='#e67e22')
+                )
             cur.execute('UPDATE hatirlaticlar SET bildirim_1saat_gonderildi=TRUE WHERE id=%s', (r['id'],))
         conn.commit()
         cur.close()
@@ -982,7 +1056,7 @@ def _bildirim_1saat_job():
         print(f'[Scheduler-1h] Hata: {e}')
 
 
-if _SCHED_AVAILABLE and PUSH_ENABLED:
+if _SCHED_AVAILABLE and (PUSH_ENABLED or MAIL_ENABLED):
     _scheduler = BackgroundScheduler(timezone='Europe/Istanbul')
     _scheduler.add_job(
         _bildirim_gonder_job,
