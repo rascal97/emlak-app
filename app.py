@@ -2,10 +2,9 @@ from flask import Flask, render_template, request, redirect, url_for, flash, g
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2, psycopg2.extras, psycopg2.errors
-import os, json, base64, smtplib
+import os, json, base64
+import urllib.request
 from datetime import datetime, date, timedelta
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
 try:
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -56,27 +55,31 @@ if _PUSH_LIB and not (VAPID_PRIVATE_KEY and VAPID_PUBLIC_KEY):
 
 PUSH_ENABLED = _PUSH_LIB and bool(VAPID_PRIVATE_KEY and VAPID_PUBLIC_KEY)
 
-# ── Mail yapılandırması ────────────────────────────────────────────────────
-MAIL_USER = os.environ.get('MAIL_USER', '')
-MAIL_PASS = os.environ.get('MAIL_PASS', '')
-MAIL_ENABLED = bool(MAIL_USER and MAIL_PASS)
+# ── Mail yapılandırması (Resend API) ──────────────────────────────────────
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+MAIL_ENABLED   = bool(RESEND_API_KEY)
 
 
 def send_mail(to_email, subject, body_html):
     if not MAIL_ENABLED or not to_email:
         return
     try:
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From']    = f'Emlak Pro <{MAIL_USER}>'
-        msg['To']      = to_email
-        msg.attach(MIMEText(body_html, 'html'))
-        with smtplib.SMTP('smtp.gmail.com', 587) as s:
-            s.ehlo()
-            s.starttls()
-            s.login(MAIL_USER, MAIL_PASS)
-            s.sendmail(MAIL_USER, to_email, msg.as_string())
-        print(f'[Mail] Gonderildi -> {to_email}')
+        payload = json.dumps({
+            'from':    'Emlak Pro <onboarding@resend.dev>',
+            'to':      [to_email],
+            'subject': subject,
+            'html':    body_html,
+        }).encode('utf-8')
+        req = urllib.request.Request(
+            'https://api.resend.com/emails',
+            data=payload,
+            headers={
+                'Authorization': f'Bearer {RESEND_API_KEY}',
+                'Content-Type':  'application/json',
+            }
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            print(f'[Mail] Gonderildi -> {to_email} ({resp.status})')
     except Exception as e:
         print(f'[Mail] Hata: {e}')
 
@@ -971,7 +974,7 @@ def _bildirim_gonder_job():
                             'data': {'url': '/hatirlaticlar'}
                         }),
                         vapid_private_key=VAPID_PRIVATE_KEY,
-                        vapid_claims={'sub': f'mailto:{MAIL_USER or "admin@emlakpro.com"}'}
+                        vapid_claims={'sub': 'mailto:admin@emlakpro.com'}
                     )
                 except Exception as pe:
                     print(f'[Push] Hata: {pe}')
@@ -1031,7 +1034,7 @@ def _bildirim_1saat_job():
                             'data': {'url': '/hatirlaticlar'}
                         }),
                         vapid_private_key=VAPID_PRIVATE_KEY,
-                        vapid_claims={'sub': f'mailto:{MAIL_USER or "admin@emlakpro.com"}'}
+                        vapid_claims={'sub': 'mailto:admin@emlakpro.com'}
                     )
                 except Exception as pe:
                     print(f'[Push-1h] Hata: {pe}')
